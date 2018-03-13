@@ -1,9 +1,13 @@
 import os.path
 import tensorflow as tf
+import lme_custom_ops
 
-print("HELLO cuda operator")
+
+print("HELLO from lme_custom_op operator")
 
 if tf.test.is_built_with_cuda():
-    _cuda_op_module = tf.load_op_library(os.path.join(
-        tf.resource_loader.get_data_files_path(), 'cuda_operator_kernel.so'))
-    add_one = _cuda_op_module.add_one
+    _lme_custom_ops_module = tf.load_op_library(os.path.join(
+        tf.resource_loader.get_data_files_path(), 'lme_custom_ops.so'))
+
+    for obj in dir(_lme_custom_ops_module):
+        setattr(lme_custom_ops, obj, getattr(_lme_custom_ops_module, obj))
