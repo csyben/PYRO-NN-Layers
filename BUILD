@@ -28,7 +28,7 @@ tf_custom_op_library(
 py_library(
     name = "cuda_operator",
     srcs = ["cuda_operator.py"],
-    data = [":cuda_operator_kernel.so"],
+    data = [":lme_custom_ops.so"],
     srcs_version = "PY2AND3",
     deps = ["//tensorflow:tensorflow_py"],
 )
