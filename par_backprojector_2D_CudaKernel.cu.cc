@@ -74,14 +74,14 @@ __global__ void backproject_par_beam_kernel(float *pVolume, const float2 *d_rays
         unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);
 
         pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f);
-        if (volume_x == 511 && volume_y == 511)
+        /* if (volume_x == 511 && volume_y == 511)
         {
             printf("volume_x=%d, volume_y=%d, physic.x=%f, physic.y=%f, s=%f, n=%d, pixel_value=%f\n", volume_x, volume_y, pixel_coordinate.x,pixel_coordinate.y,s, n, pixel_value);
-        }
+        } */
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = pixel_value / number_of_projections;
+    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections/3.14159265359f);
 
     return;
 }

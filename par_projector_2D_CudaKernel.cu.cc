@@ -19,22 +19,22 @@ inline __host__ __device__ float2 operator+(float2 a, float2 b)
     return make_float2(a.x + b.x, a.y + b.y);
 }
 
-inline __host__ __device__ float index_to_physical(float index,float origin,float spacing)
+inline __host__ __device__ float index_to_physical(float index, float origin, float spacing)
 {
-    return index *spacing + origin;
+    return index * spacing + origin;
 }
 
-inline __host__ __device__ float physical_to_index(float physical,float origin,float spacing)
+inline __host__ __device__ float physical_to_index(float physical, float origin, float spacing)
 {
     return (physical - origin) / spacing;
 }
 
-inline __host__ __device__ float2 index_to_physical(float2 index,float2 origin,float2 spacing)
+inline __host__ __device__ float2 index_to_physical(float2 index, float2 origin, float2 spacing)
 {
-    return make_float2(index.x *spacing.x + origin.x  ,index.y * spacing.y + origin.y );
+    return make_float2(index.x * spacing.x + origin.x, index.y * spacing.y + origin.y);
 }
 
-inline __host__ __device__ float2 physical_to_index(float2 physical,float2 origin,float2 spacing)
+inline __host__ __device__ float2 physical_to_index(float2 physical, float2 origin, float2 spacing)
 {
     return make_float2((physical.x - origin.x) / spacing.x, (physical.y - origin.y) / spacing.y);
 }
@@ -42,15 +42,16 @@ inline __host__ __device__ float2 physical_to_index(float2 physical,float2 origi
 texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
-__device__ float kernel_project2D(const float2 source_point, const float2 ray_vector, const float step_size, const int2 volume_size, 
-const float2 volume_origin, const float2 volume_spacing)
-{    float pixel = 0.0f;
-     // Step 1: compute alpha value at entry and exit point of the volume
+__device__ float kernel_project2D(const float2 source_point, const float2 ray_vector, const float step_size, const int2 volume_size,
+                                  const float2 volume_origin, const float2 volume_spacing)
+{
+    float pixel = 0.0f;
+    // Step 1: compute alpha value at entry and exit point of the volume
     float min_alpha, max_alpha;
     min_alpha = 0;
-    max_alpha = CUDART_INF_F;
-    //pixel = tex2D(volume_as_texture, 5 + 0.5f, 5 + 0.5f);
-    if (0.0f != ray_vector.x)
+    max_alpha = 10000;
+    //TODO: min and max alpha calculation
+    /*  if (0.0f != ray_vector.x)
     {
         float reci = 1.0f / ray_vector.x;
         float alpha0 = ((-0.5f) - source_point.x) * reci;
@@ -58,7 +59,7 @@ const float2 volume_origin, const float2 volume_spacing)
         min_alpha = fminf(alpha0, alpha1);
         max_alpha = fmaxf(alpha0, alpha1);
     }
-    
+
     if (0.0f != ray_vector.y)
     {
         float reci = 1.0f / ray_vector.y;
@@ -66,11 +67,11 @@ const float2 volume_origin, const float2 volume_spacing)
         float alpha1 = ((volume_size.y - 0.5f) - source_point.y) * reci;
         min_alpha = fmaxf(min_alpha, fminf(alpha0, alpha1));
         max_alpha = fminf(max_alpha, fmaxf(alpha0, alpha1));
-    }
-   
+    } */
+
     // we start not at the exact entry point
     // => we can be sure to be inside the volume
-    min_alpha += step_size * 0.5f;
+    //min_alpha += step_size * 0.5f;
 
     // Step 2: Cast ray if it intersects the volume
     //float pixel = 0.0f;
@@ -86,16 +87,18 @@ const float2 volume_origin, const float2 volume_spacing)
     if (min_alpha < max_alpha)
     {
         px = source_point.x + min_alpha * ray_vector.x;
-        py = source_point.y + min_alpha * ray_vector.y;        
-        pixel += 0.5f * tex2D(volume_as_texture, physical_to_index(px,volume_origin.x,volume_spacing.x) + 0.5f, physical_to_index(py,volume_origin.x,volume_spacing.y) + 0.5f);
+        py = source_point.y + min_alpha * ray_vector.y;
+
+        pixel += 0.5f * tex2D(volume_as_texture, physical_to_index(px, volume_origin.x, volume_spacing.x) + 0.5f, physical_to_index(py, volume_origin.y, volume_spacing.y) + 0.5f);
         min_alpha += step_size;
     }
-   // Mid segments
+    // Mid segments
     while (min_alpha < max_alpha)
     {
         px = source_point.x + min_alpha * ray_vector.x;
         py = source_point.y + min_alpha * ray_vector.y;
-        pixel += tex2D(volume_as_texture, physical_to_index(px,volume_origin.x,volume_spacing.x) + 0.5f, physical_to_index(py,volume_origin.x,volume_spacing.y) + 0.5f);
+        float2 interp_point = physical_to_index(make_float2(px, py), volume_origin, volume_spacing);
+        pixel += tex2D(volume_as_texture, physical_to_index(px, volume_origin.x, volume_spacing.x) + 0.5f, physical_to_index(py, volume_origin.y, volume_spacing.y) + 0.5f);
         min_alpha += step_size;
     }
     // Scaling by stepsize;
@@ -104,16 +107,16 @@ const float2 volume_origin, const float2 volume_spacing)
     // Last segment of the line
     if (pixel > 0.0f)
     {
-        pixel -= 0.5f * step_size * tex2D(volume_as_texture, physical_to_index(px,volume_origin.x,volume_spacing.x) + 0.5f, physical_to_index(py,volume_origin.x,volume_spacing.y) + 0.5f);
+        pixel -= 0.5f * step_size * tex2D(volume_as_texture, physical_to_index(px, volume_origin.x, volume_spacing.x) + 0.5f, physical_to_index(py, volume_origin.y, volume_spacing.y) + 0.5f);
         min_alpha -= step_size;
         float last_step_size = max_alpha - min_alpha;
-        pixel += 0.5f * last_step_size * tex2D(volume_as_texture, physical_to_index(px,volume_origin.x,volume_spacing.x) + 0.5f, physical_to_index(py,volume_origin.x,volume_spacing.y) + 0.5f);
+        pixel += 0.5f * last_step_size * tex2D(volume_as_texture, physical_to_index(px, volume_origin.x, volume_spacing.x) + 0.5f, physical_to_index(py, volume_origin.y, volume_spacing.y) + 0.5f);
 
         px = source_point.x + max_alpha * ray_vector.x;
         py = source_point.y + max_alpha * ray_vector.y;
         // The last segment of the line integral takes care of the
         // varying length.
-        pixel += 0.5f * last_step_size * tex2D(volume_as_texture, physical_to_index(px,volume_origin.x,volume_spacing.x) + 0.5f, physical_to_index(py,volume_origin.x,volume_spacing.y) + 0.5f);
+        pixel += 0.5f * last_step_size * tex2D(volume_as_texture, physical_to_index(px, volume_origin.x, volume_spacing.x) + 0.5f, physical_to_index(py, volume_origin.y, volume_spacing.y) + 0.5f);
     }
     return pixel;
 }
@@ -132,40 +135,44 @@ __global__ void project_par_beam_kernel(float *pSinogram, const float2 *d_rays, 
 
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     //TODO: use volume spacing to reduce ray length
-    float sid = sqrt((float)(volume_size.x * volume_size.x) + (volume_size.y * volume_size.y)) * 1.1f;
+    float sid = sqrt((float)(volume_size.x * volume_spacing.x * volume_size.x * volume_spacing.x) + (volume_size.y * volume_spacing.y * volume_size.y * volume_spacing.y)) * 1.2f;
 
     int projection_idx = blockIdx.y;
     float2 ray_vector = d_rays[projection_idx];
-    
+
     //create detector coordinate system (u,v) w.r.t the ray
     float2 u_vec = make_float2(-ray_vector.y, ray_vector.x);
     //calculate physical coordinate of detector pixel
-    float u = index_to_physical(detector_idx,detector_origin,detector_spacing);
+    float u = index_to_physical(detector_idx, detector_origin, detector_spacing);
     //float u = detector_idx * detector_spacing + detector_mid;
-    
+
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
-    float2 virtual_source_point =  ray_vector * (-sid) + u_vec*u;
+    float2 virtual_source_point = ray_vector * (-sid) + u_vec * u;
     //float2 virtual_source_point = origin_shift_physical + (ray_vector * (-sid)) + (u_vec * u);
-    if(detector_idx==1)
+    /* if (projection_idx == 0 || projection_idx == 1)
     {
-        printf("projection_idx %d, ray_vector.x=%f, ray_vector.y=%f\n", projection_idx, ray_vector.x,ray_vector.y);
-        printf("projection_idx %d, volume_origin.x=%f,volume_origin.y=%f\n", projection_idx, volume_origin.x,volume_origin.y);
+        printf("projection_idx %d, detector_idx %d, u=%f, source.x=%f, source.y=%f\n", projection_idx, detector_idx, u, virtual_source_point.x, virtual_source_point.y);
+    } */
+    /*if (detector_idx == 1)
+    {
+        printf("projection_idx %d, ray_vector.x=%f, ray_vector.y=%f\n", projection_idx, ray_vector.x, ray_vector.y);
+        printf("projection_idx %d, volume_origin.x=%f,volume_origin.y=%f\n", projection_idx, volume_origin.x, volume_origin.y);
         printf("projection_idx %d, detector_origin=%f\n", projection_idx, detector_origin);
-        printf("projection_idx %d, virtual_source_point.x=%f, virtual_source_point.y=%f\n", projection_idx, virtual_source_point.x,virtual_source_point.y);
-        printf("projection_idx %d, u=%f\n", projection_idx,u);
-    }
+        printf("projection_idx %d, virtual_source_point.x=%f, virtual_source_point.y=%f\n", projection_idx, virtual_source_point.x, virtual_source_point.y);
+        printf("projection_idx %d, u=%f\n", projection_idx, u);
+    } */
     float pixel = kernel_project2D(
-    virtual_source_point,
-    ray_vector,
-    sampling_step_size*volume_spacing.x,
-    volume_size,
-    volume_origin,
-    volume_spacing);
-    
+        virtual_source_point,
+        ray_vector,
+        sampling_step_size,
+        volume_size,
+        volume_origin,
+        volume_spacing);
+
     //TODO: Check sacling
     pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
-    
+
     unsigned sinogram_idx = projection_idx * detector_size + detector_idx;
     pSinogram[sinogram_idx] = pixel;
 
@@ -192,20 +199,20 @@ void Projection_Kernel_Launcher(const float *volume_ptr, float *out, const float
 
     auto ray_size_b = number_of_projections * sizeof(float2);
     float2 *d_rays;
-    cudaMalloc(&d_rays,ray_size_b);
-    cudaMemcpy(d_rays,ray_vectors, ray_size_b, cudaMemcpyHostToDevice );
+    cudaMalloc(&d_rays, ray_size_b);
+    cudaMemcpy(d_rays, ray_vectors, ray_size_b, cudaMemcpyHostToDevice);
 
-    float sampling_step_size = 1;
+    float sampling_step_size = 0.2;
 
-    int2 volume_size = make_int2(volume_width,volume_height);
-    float2 volume_spacing = make_float2(volume_spacing_x,volume_spacing_y);
-    float2 volume_origin = make_float2(volume_origin_x,volume_origin_y);
+    int2 volume_size = make_int2(volume_width, volume_height);
+    float2 volume_spacing = make_float2(volume_spacing_x, volume_spacing_y);
+    float2 volume_origin = make_float2(volume_origin_x, volume_origin_y);
 
     const unsigned blocksize = 256;
     const dim3 gridsize = dim3((detector_size / blocksize) + 1, number_of_projections);
     project_par_beam_kernel<<<gridsize, blocksize>>>(out, d_rays, number_of_projections, sampling_step_size,
-                                                    volume_size, volume_spacing, volume_origin,
-                                                    detector_size, detector_spacing, detector_origin);
+                                                     volume_size, volume_spacing, volume_origin,
+                                                     detector_size, detector_spacing, detector_origin);
 }
 
 #endif

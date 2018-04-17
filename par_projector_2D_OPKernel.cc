@@ -16,10 +16,10 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("ray_vectors : tensor")
     .Output("output: float")
     .Doc(R"doc(
-Adds 1 to all elements of the tensor.
+Computes the 2D parallel forward projection of the input based on the given ray vectors
 
 output: A Tensor.
-  output = input + 1
+  output = A*x
 )doc");
 // volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
 
@@ -89,6 +89,10 @@ class ProjectionOp : public OpKernel
         auto ray_vectors_eigen = ray_vectors_tensor.tensor<float, 2>();
         ray_vectors_ = Eigen::Tensor<float, 2, Eigen::RowMajor>(ray_vectors_eigen);
 
+        std::cout << "detector size (u): (" << detector_size << ")\n";
+        std::cout << "number_of_projections: (" << number_of_projections << ")\n";
+        std::cout << " vector (0,0): (" << ray_vectors_(0, 0) << ") \n";
+        std::cout << " vector (0,1): (" << ray_vectors_(0, 1) << ") \n";
         //Debug Output
         /*         std::cout << "Volume origin (x,y): (" << ox_ << "," << oy_ << ")\n";
         std::cout << "detector origin (u): (" << ou_ << ")\n";
@@ -115,7 +119,7 @@ class ProjectionOp : public OpKernel
 
         // Set all but the first element of the output tensor to 0.
         const int N = input.size();
-        std::cout << " N = input.size(): " << N << " \n";
+        //std::cout << " N = input.size(): " << N << " \n";
         // Call the cuda kernel launcher
         Projection_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
                                    volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
