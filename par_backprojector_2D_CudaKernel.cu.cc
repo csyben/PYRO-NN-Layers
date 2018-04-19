@@ -48,7 +48,7 @@ inline __host__ __device__ float2 physical_to_index(float2 physical, float2 orig
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
-__global__ void backproject_par_beam_kernel(float *pVolume, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
+__global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
                                             const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
                                             const int detector_size, const float detector_spacing, const float detector_origin)
 {
@@ -60,9 +60,6 @@ __global__ void backproject_par_beam_kernel(float *pVolume, const float2 *d_rays
     }
     //Preparations:
     const float2 pixel_coordinate = index_to_physical(make_float2(volume_x, volume_y), volume_origin, volume_spacing);
-    /* const float2 pixel_coordinate = make_flaot2(index_to_physical(volume_x, volume_origin.x, volume_spacing.x),
-                                                 index_to_physical(volume_y, volume_origin.y, volume_spacing.y));
-    */
     float pixel_value = 0.0f;
 
     for (int n = 0; n < number_of_projections; n++)
@@ -74,19 +71,15 @@ __global__ void backproject_par_beam_kernel(float *pVolume, const float2 *d_rays
         unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);
 
         pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f);
-        /* if (volume_x == 511 && volume_y == 511)
-        {
-            printf("volume_x=%d, volume_y=%d, physic.x=%f, physic.y=%f, s=%f, n=%d, pixel_value=%f\n", volume_x, volume_y, pixel_coordinate.x,pixel_coordinate.y,s, n, pixel_value);
-        } */
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections/3.14159265359f);
+    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections / 3.14159265359f);
 
     return;
 }
 
-void Backprojection_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
+void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
                                     const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
                                     const float volume_origin_x, const float volume_origin_y,
                                     const int detector_size, const float detector_spacing, const float detector_origin)
@@ -101,7 +94,7 @@ void Backprojection_Kernel_Launcher(const float *sinogram_ptr, float *out, const
     cudaMallocArray(&sinogram_array, &channelDesc, detector_size, number_of_projections);
     cudaMemcpyToArray(sinogram_array, 0, 0, sinogram_ptr, detector_size * number_of_projections * sizeof(float), cudaMemcpyHostToDevice);
     cudaBindTextureToArray(sinogram_as_texture, sinogram_array, channelDesc);
-    printf("Number of Projections __host__: %d\n",number_of_projections);
+    
     auto ray_size_b = number_of_projections * sizeof(float2);
     float2 *d_rays;
     cudaMalloc(&d_rays, ray_size_b);
@@ -114,12 +107,12 @@ void Backprojection_Kernel_Launcher(const float *sinogram_ptr, float *out, const
     float2 volume_origin = make_float2(volume_origin_x, volume_origin_y);
 
     const unsigned block_size = 16;
-    const dim3 threads_per_block = dim3(block_size,block_size);
-    const dim3 num_blocks = dim3(volume_width/threads_per_block.x+1, volume_height/threads_per_block.y+1);
-    
-    backproject_par_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections, sampling_step_size,
-                                                         volume_size, volume_spacing, volume_origin,
-                                                         detector_size, detector_spacing, detector_origin);
+    const dim3 threads_per_block = dim3(block_size, block_size);
+    const dim3 num_blocks = dim3(volume_width / threads_per_block.x + 1, volume_height / threads_per_block.y + 1);
+
+    backproject_2Dpar_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections, sampling_step_size,
+                                                                   volume_size, volume_spacing, volume_origin,
+                                                                   detector_size, detector_spacing, detector_origin);
 }
 
 #endif

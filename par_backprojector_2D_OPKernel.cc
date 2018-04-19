@@ -3,7 +3,7 @@
 
 using namespace tensorflow; // NOLINT(build/namespaces)
 
-#define CUDA_OPERATOR_KERNEL "Backprojection"
+#define CUDA_OPERATOR_KERNEL "ParallelBackprojection2D"
 
 REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Input("sinogram: float")
@@ -21,14 +21,13 @@ Computes the 2D parallel backprojection of the input sinogram based on the given
 output: A Tensor.
   output = A^T * p'
 )doc");
-// volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
 
-void Backprojection_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
+void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
                                     const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
                                     const float volume_origin_x, const float volume_origin_y,
                                     const int detector_size, const float detector_spacing, const float detector_origin);
 
-class BackprojectionOp : public OpKernel
+class ParallelBackprojection2DOp : public OpKernel
 {
     TensorShape volume_shape;
     int volume_width, volume_height;
@@ -47,7 +46,7 @@ class BackprojectionOp : public OpKernel
     Eigen::Tensor<float, 2, Eigen::RowMajor> ray_vectors_;
 
   public:
-    explicit BackprojectionOp(OpKernelConstruction *context) : OpKernel(context)
+    explicit ParallelBackprojection2DOp(OpKernelConstruction *context) : OpKernel(context)
     {
 
         //get volume shape from attributes
@@ -88,17 +87,6 @@ class BackprojectionOp : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("ray_vectors", &ray_vectors_tensor));
         auto ray_vectors_eigen = ray_vectors_tensor.tensor<float, 2>();
         ray_vectors_ = Eigen::Tensor<float, 2, Eigen::RowMajor>(ray_vectors_eigen);
-        std::cout << "number_of_projections: (" << number_of_projections << ")\n";
-        //Debug Output
-        /*         std::cout << "Volume origin (x,y): (" << ox_ << "," << oy_ << ")\n";
-        std::cout << "detector origin (u): (" << ou_ << ")\n";
-        std::cout << "Volume spacing (x,y): (" << sx_ << "," << sy_ << ")\n";
-        std::cout << "detector spacing (u): (" << su_ << ")\n";
-        std::cout << "number_of_projections: (" << number_of_projections << ")\n";
-        float x_test = ray_vectors_(0, 0);
-        float y_test = ray_vectors_(0, 1);
-        std::cout << " vector (0,0): (" << x_test << ") \n";
-        std::cout << " vector (0,1): (" << y_test << ") \n"; */
     }
 
     void Compute(OpKernelContext *context) override
@@ -113,14 +101,11 @@ class BackprojectionOp : public OpKernel
                                                          &output_tensor));
         auto output = output_tensor->template flat<float>();
 
-        // Set all but the first element of the output tensor to 0.
-        const int N = input.size();
-        //std::cout << " N = input.size(): " << N << " \n";
         // Call the cuda kernel launcher
-        Backprojection_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
+        Parallel_Backprojection2D_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
                                        volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
                                        detector_size, detector_spacing, detector_origin);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), BackprojectionOp);
+REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), ParallelBackprojection2DOp);

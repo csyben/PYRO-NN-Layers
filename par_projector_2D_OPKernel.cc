@@ -3,7 +3,7 @@
 
 using namespace tensorflow; // NOLINT(build/namespaces)
 
-#define CUDA_OPERATOR_KERNEL "Projection"
+#define CUDA_OPERATOR_KERNEL "ParallelProjection2D"
 
 REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Input("volume: float")
@@ -23,13 +23,13 @@ output: A Tensor.
 )doc");
 // volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
 
-void Projection_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
-                                const int detector_width, const float detector_spacing, const float detector_origin);
+void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
+                                           const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
+                                           const int detector_width, const float detector_spacing, const float detector_origin);
 
 /* void AddOneKernelLauncher(const float *volume_ptr, const int volume_width, const int volume_height, float *out);
  */
-class ProjectionOp : public OpKernel
+class ParallelProjection2DOp : public OpKernel
 {
     TensorShape volume_shape;
     int volume_width, volume_height;
@@ -48,7 +48,7 @@ class ProjectionOp : public OpKernel
     Eigen::Tensor<float, 2, Eigen::RowMajor> ray_vectors_;
 
   public:
-    explicit ProjectionOp(OpKernelConstruction *context) : OpKernel(context)
+    explicit ParallelProjection2DOp(OpKernelConstruction *context) : OpKernel(context)
     {
         //get volume shape from attributes
         OP_REQUIRES_OK(context, context->GetAttr("volume_shape", &volume_shape));
@@ -88,21 +88,6 @@ class ProjectionOp : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("ray_vectors", &ray_vectors_tensor));
         auto ray_vectors_eigen = ray_vectors_tensor.tensor<float, 2>();
         ray_vectors_ = Eigen::Tensor<float, 2, Eigen::RowMajor>(ray_vectors_eigen);
-
-        std::cout << "detector size (u): (" << detector_size << ")\n";
-        std::cout << "number_of_projections: (" << number_of_projections << ")\n";
-        std::cout << " vector (0,0): (" << ray_vectors_(0, 0) << ") \n";
-        std::cout << " vector (0,1): (" << ray_vectors_(0, 1) << ") \n";
-        //Debug Output
-        /*         std::cout << "Volume origin (x,y): (" << ox_ << "," << oy_ << ")\n";
-        std::cout << "detector origin (u): (" << ou_ << ")\n";
-        std::cout << "Volume spacing (x,y): (" << sx_ << "," << sy_ << ")\n";
-        std::cout << "detector spacing (u): (" << su_ << ")\n";
-        std::cout << "number_of_projections: (" << number_of_projections << ")\n";
-        float x_test = ray_vectors_(0, 0);
-        float y_test = ray_vectors_(0, 1);
-        std::cout << " vector (0,0): (" << x_test << ") \n";
-        std::cout << " vector (0,1): (" << y_test << ") \n"; */
     }
 
     void Compute(OpKernelContext *context) override
@@ -117,14 +102,11 @@ class ProjectionOp : public OpKernel
                                                          &output_tensor));
         auto output = output_tensor->template flat<float>();
 
-        // Set all but the first element of the output tensor to 0.
-        const int N = input.size();
-        //std::cout << " N = input.size(): " << N << " \n";
         // Call the cuda kernel launcher
-        Projection_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
-                                   volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
-                                   detector_size, detector_spacing, detector_origin);
+        Parallel_Projection2D_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
+                                              volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
+                                              detector_size, detector_spacing, detector_origin);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), ProjectionOp);
+REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), ParallelProjection2DOp);
