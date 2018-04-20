@@ -42,38 +42,42 @@ inline __host__ __device__ float2 physical_to_index(float2 physical, float2 orig
 texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
-__device__ float kernel_project2D(const float2 source_point, const float2 ray_vector, const float step_size, const int2 volume_size,
-                                  const float2 volume_origin, const float2 volume_spacing)
+inline __device__ float kernel_project2D(const float2 source_point, const float2 ray_vector, const float step_size, const int2 volume_size,
+                                         const float2 volume_origin, const float2 volume_spacing)
 {
 
     unsigned int detector_idx = blockIdx.x * blockDim.x + threadIdx.x;
     int projection_idx = blockIdx.y;
 
-
     float pixel = 0.0f;
     // Step 1: compute alpha value at entry and exit point of the volume
     float min_alpha, max_alpha;
     min_alpha = 0;
-    max_alpha = 10000;//CUDART_INF_F;
+    max_alpha = CUDART_INF_F;
     //TODO: fix min and max alpha calculation, min_alpha > max_alpha occures -> partial sinogram ?
-/* 
     if (0.0f != ray_vector.x)
     {
+        float volume_min_edge_point = index_to_physical(0, volume_origin.x, volume_spacing.x) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.x, volume_origin.x, volume_spacing.x) - 0.5f;
+
         float reci = 1.0f / ray_vector.x;
-        float alpha0 = ((-0.5f) - source_point.x) * reci;
-        float alpha1 = (((volume_size.x*volume_spacing.x) - 0.5f) - source_point.x) * reci;
+        float alpha0 = (volume_min_edge_point - source_point.x) * reci;
+        float alpha1 = (volume_max_edge_point - source_point.x) * reci;
         min_alpha = fmin(alpha0, alpha1);
         max_alpha = fmax(alpha0, alpha1);
     }
 
     if (0.0f != ray_vector.y)
     {
+        float volume_min_edge_point = index_to_physical(0, volume_origin.y, volume_spacing.y) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.y, volume_origin.y, volume_spacing.y) - 0.5f;
+
         float reci = 1.0f / ray_vector.y;
-        float alpha0 = ((-0.5f) - source_point.y) * reci;
-        float alpha1 = (((volume_size.y*volume_spacing.y) - 0.5f) - source_point.y) * reci;
+        float alpha0 = (volume_min_edge_point - source_point.y) * reci;
+        float alpha1 = (volume_max_edge_point - source_point.y) * reci;
         min_alpha = fmax(min_alpha, fmin(alpha0, alpha1));
         max_alpha = fmin(max_alpha, fmax(alpha0, alpha1));
-    } */
+    }
 
     // we start not at the exact entry point
     // => we can be sure to be inside the volume
@@ -127,8 +131,8 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
 }
 
 __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
-                                        const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
-                                        const int detector_size, const float detector_spacing, const float detector_origin)
+                                          const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
+                                          const int detector_size, const float detector_spacing, const float detector_origin)
 {
     unsigned int detector_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -154,17 +158,17 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     float2 virtual_source_point = ray_vector * (-sid) + u_vec * u;
-    
+
     float pixel = kernel_project2D(
         virtual_source_point,
         ray_vector,
-        sampling_step_size,
+        sampling_step_size*fmin(volume_spacing.x,volume_spacing.y),
         volume_size,
         volume_origin,
         volume_spacing);
 
     //TODO: Check sacling
-    pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
+    //pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
 
     unsigned sinogram_idx = projection_idx * detector_size + detector_idx;
     pSinogram[sinogram_idx] = pixel;
@@ -173,8 +177,8 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
 }
 
 void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
-                                const int detector_size, const float detector_spacing, const float detector_origin)
+                                           const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
+                                           const int detector_size, const float detector_spacing, const float detector_origin)
 {
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
     volume_as_texture.addressMode[0] = cudaAddressModeBorder;
@@ -201,8 +205,8 @@ void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, 
     const unsigned blocksize = 256;
     const dim3 gridsize = dim3((detector_size / blocksize) + 1, number_of_projections);
     project_2Dpar_beam_kernel<<<gridsize, blocksize>>>(out, d_rays, number_of_projections, sampling_step_size,
-                                                     volume_size, volume_spacing, volume_origin,
-                                                     detector_size, detector_spacing, detector_origin);
+                                                       volume_size, volume_spacing, volume_origin,
+                                                       detector_size, detector_spacing, detector_origin);
 }
 
 #endif

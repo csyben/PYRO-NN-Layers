@@ -66,26 +66,32 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
     // Step 1: compute alpha value at entry and exit point of the volume
     float min_alpha, max_alpha;
     min_alpha = 0;
-    max_alpha = 10000; //CUDART_INF_F;
+    max_alpha = CUDART_INF_F;
     //TODO: fix min and max alpha calculation, min_alpha > max_alpha occures -> partial sinogram ?
-    /* 
+    
     if (0.0f != ray_vector.x)
     {
+        float volume_min_edge_point = index_to_physical(0, volume_origin.x,volume_spacing.x) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.x, volume_origin.x,volume_spacing.x) - 0.5f;
+
         float reci = 1.0f / ray_vector.x;
-        float alpha0 = ((-0.5f) - source_point.x) * reci;
-        float alpha1 = (((volume_size.x*volume_spacing.x) - 0.5f) - source_point.x) * reci;
+        float alpha0 = ( volume_min_edge_point - source_point.x) * reci;        
+        float alpha1 = ( volume_max_edge_point - source_point.x) * reci;
         min_alpha = fmin(alpha0, alpha1);
         max_alpha = fmax(alpha0, alpha1);
     }
 
     if (0.0f != ray_vector.y)
     {
+        float volume_min_edge_point = index_to_physical(0, volume_origin.y,volume_spacing.y) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.y, volume_origin.y,volume_spacing.y) - 0.5f;
+
         float reci = 1.0f / ray_vector.y;
-        float alpha0 = ((-0.5f) - source_point.y) * reci;
-        float alpha1 = (((volume_size.y*volume_spacing.y) - 0.5f) - source_point.y) * reci;
+        float alpha0 = ( volume_min_edge_point - source_point.y) * reci;        
+        float alpha1 = ( volume_max_edge_point - source_point.y) * reci;
         min_alpha = fmax(min_alpha, fmin(alpha0, alpha1));
         max_alpha = fmin(max_alpha, fmax(alpha0, alpha1));
-    } */
+    }
 
     // we start not at the exact entry point
     // => we can be sure to be inside the volume
@@ -172,13 +178,13 @@ __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays
     float pixel = kernel_project2D(
         source_point,
         ray_vector,
-        sampling_step_size,
+        sampling_step_size * fmin(volume_spacing.x,volume_spacing.y),
         volume_size,
         volume_origin,
         volume_spacing);
 
     //TODO: Check sacling
-    pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
+    //pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
 
     unsigned sinogram_idx = projection_idx * detector_size + detector_idx;
     pSinogram[sinogram_idx] = pixel;
