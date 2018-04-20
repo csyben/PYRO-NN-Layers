@@ -48,7 +48,7 @@ inline __host__ __device__ float2 physical_to_index(float2 physical, float2 orig
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
-__global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
+__global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_rays, const int number_of_projections,
                                             const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
                                             const int detector_size, const float detector_spacing, const float detector_origin)
 {
@@ -74,7 +74,7 @@ __global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_ra
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections / 3.14159265359f);
+    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections * 3.14159265359f);
 
     return;
 }
@@ -100,8 +100,6 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
     cudaMalloc(&d_rays, ray_size_b);
     cudaMemcpy(d_rays, ray_vectors, ray_size_b, cudaMemcpyHostToDevice);
 
-    float sampling_step_size = 1;
-
     int2 volume_size = make_int2(volume_width, volume_height);
     float2 volume_spacing = make_float2(volume_spacing_x, volume_spacing_y);
     float2 volume_origin = make_float2(volume_origin_x, volume_origin_y);
@@ -110,7 +108,7 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
     const dim3 threads_per_block = dim3(block_size, block_size);
     const dim3 num_blocks = dim3(volume_width / threads_per_block.x + 1, volume_height / threads_per_block.y + 1);
 
-    backproject_2Dpar_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections, sampling_step_size,
+    backproject_2Dpar_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections, 
                                                                    volume_size, volume_spacing, volume_origin,
                                                                    detector_size, detector_spacing, detector_origin);
 }

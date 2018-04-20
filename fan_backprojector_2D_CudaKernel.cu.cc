@@ -95,8 +95,6 @@ __global__ void backproject_2Dfan_beam_kernel(float *pVolume, const float2 *d_ra
 
         float2 source_position = central_ray * (-sid);
         float2 central_point = source_position + central_ray * sdd;
-
-        float2 fan_ray = normalize(pixel_coordinate - source_position);
         
         float2 intersection = intersectLines(pixel_coordinate,source_position,central_point,central_point+detector_vec);
 
