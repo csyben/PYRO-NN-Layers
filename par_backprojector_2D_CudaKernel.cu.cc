@@ -49,9 +49,10 @@ texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
 __global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_rays, const int number_of_projections,
-                                            const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
-                                            const int detector_size, const float detector_spacing, const float detector_origin)
+                                              const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
+                                              const int detector_size, const float detector_spacing, const float detector_origin)
 {
+    const float pi = 3.14159265359f;
     unsigned int volume_x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int volume_y = blockIdx.y * blockDim.y + threadIdx.y;
     if (volume_x >= volume_size.x || volume_y >= volume_size.y)
@@ -74,15 +75,15 @@ __global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_ra
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = pixel_value / (number_of_projections * 3.14159265359f);
+    pVolume[volume_linearized_idx] = 2 * pi * pixel_value / number_of_projections;
 
     return;
 }
 
 void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                    const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
-                                    const float volume_origin_x, const float volume_origin_y,
-                                    const int detector_size, const float detector_spacing, const float detector_origin)
+                                               const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
+                                               const float volume_origin_x, const float volume_origin_y,
+                                               const int detector_size, const float detector_spacing, const float detector_origin)
 {
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
     sinogram_as_texture.addressMode[0] = cudaAddressModeBorder;
@@ -94,7 +95,7 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
     cudaMallocArray(&sinogram_array, &channelDesc, detector_size, number_of_projections);
     cudaMemcpyToArray(sinogram_array, 0, 0, sinogram_ptr, detector_size * number_of_projections * sizeof(float), cudaMemcpyHostToDevice);
     cudaBindTextureToArray(sinogram_as_texture, sinogram_array, channelDesc);
-    
+
     auto ray_size_b = number_of_projections * sizeof(float2);
     float2 *d_rays;
     cudaMalloc(&d_rays, ray_size_b);
@@ -108,9 +109,13 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
     const dim3 threads_per_block = dim3(block_size, block_size);
     const dim3 num_blocks = dim3(volume_width / threads_per_block.x + 1, volume_height / threads_per_block.y + 1);
 
-    backproject_2Dpar_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections, 
-                                                                   volume_size, volume_spacing, volume_origin,
-                                                                   detector_size, detector_spacing, detector_origin);
+    backproject_2Dpar_beam_kernel<<<num_blocks, threads_per_block>>>(out, d_rays, number_of_projections,
+                                                                     volume_size, volume_spacing, volume_origin,
+                                                                     detector_size, detector_spacing, detector_origin);
+
+    cudaUnbindTexture( sinogram_as_texture );
+    cudaFreeArray( sinogram_array );
+    cudaFree( d_rays );
 }
 
 #endif

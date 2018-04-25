@@ -207,6 +207,13 @@ void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, 
     project_2Dpar_beam_kernel<<<gridsize, blocksize>>>(out, d_rays, number_of_projections, sampling_step_size,
                                                        volume_size, volume_spacing, volume_origin,
                                                        detector_size, detector_spacing, detector_origin);
+
+    // cleanup
+    cudaUnbindTexture( volume_as_texture );
+    cudaFreeArray( volume_array );
+    cudaFree( d_rays );
 }
+
+
 
 #endif

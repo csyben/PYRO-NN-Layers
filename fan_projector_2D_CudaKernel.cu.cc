@@ -68,27 +68,27 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
     min_alpha = 0;
     max_alpha = CUDART_INF_F;
     //TODO: fix min and max alpha calculation, min_alpha > max_alpha occures -> partial sinogram ?
-    
+
     if (0.0f != ray_vector.x)
     {
-        float volume_min_edge_point = index_to_physical(0, volume_origin.x,volume_spacing.x) - 0.5f;
-        float volume_max_edge_point = index_to_physical(volume_size.x, volume_origin.x,volume_spacing.x) - 0.5f;
+        float volume_min_edge_point = index_to_physical(0, volume_origin.x, volume_spacing.x) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.x, volume_origin.x, volume_spacing.x) - 0.5f;
 
         float reci = 1.0f / ray_vector.x;
-        float alpha0 = ( volume_min_edge_point - source_point.x) * reci;        
-        float alpha1 = ( volume_max_edge_point - source_point.x) * reci;
+        float alpha0 = (volume_min_edge_point - source_point.x) * reci;
+        float alpha1 = (volume_max_edge_point - source_point.x) * reci;
         min_alpha = fmin(alpha0, alpha1);
         max_alpha = fmax(alpha0, alpha1);
     }
 
     if (0.0f != ray_vector.y)
     {
-        float volume_min_edge_point = index_to_physical(0, volume_origin.y,volume_spacing.y) - 0.5f;
-        float volume_max_edge_point = index_to_physical(volume_size.y, volume_origin.y,volume_spacing.y) - 0.5f;
+        float volume_min_edge_point = index_to_physical(0, volume_origin.y, volume_spacing.y) - 0.5f;
+        float volume_max_edge_point = index_to_physical(volume_size.y, volume_origin.y, volume_spacing.y) - 0.5f;
 
         float reci = 1.0f / ray_vector.y;
-        float alpha0 = ( volume_min_edge_point - source_point.y) * reci;        
-        float alpha1 = ( volume_max_edge_point - source_point.y) * reci;
+        float alpha0 = (volume_min_edge_point - source_point.y) * reci;
+        float alpha1 = (volume_max_edge_point - source_point.y) * reci;
         min_alpha = fmax(min_alpha, fmin(alpha0, alpha1));
         max_alpha = fmin(max_alpha, fmax(alpha0, alpha1));
     }
@@ -146,7 +146,7 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
 
 __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
                                           const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
-                                          const int detector_size, const float detector_spacing, const float detector_origin, 
+                                          const int detector_size, const float detector_spacing, const float detector_origin,
                                           const float sid, const float sdd)
 {
     unsigned int detector_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -171,14 +171,14 @@ __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     float2 source_point = central_ray_vector * (-sid);
-    
+
     float2 detector_point_world = source_point + central_ray_vector * sdd + u_vec * u;
     float2 ray_vector = normalize(detector_point_world - source_point);
 
     float pixel = kernel_project2D(
         source_point,
         ray_vector,
-        sampling_step_size * fmin(volume_spacing.x,volume_spacing.y),
+        sampling_step_size * fmin(volume_spacing.x, volume_spacing.y),
         volume_size,
         volume_origin,
         volume_spacing);
@@ -193,9 +193,9 @@ __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays
 }
 
 void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                           const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
-                                           const int detector_size, const float detector_spacing, const float detector_origin, 
-                                           const float sid, const float sdd)
+                                    const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
+                                    const int detector_size, const float detector_spacing, const float detector_origin,
+                                    const float sid, const float sdd)
 {
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
     volume_as_texture.addressMode[0] = cudaAddressModeBorder;
@@ -223,7 +223,11 @@ void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const f
     const dim3 gridsize = dim3((detector_size / blocksize) + 1, number_of_projections);
     project_2Dfan_beam_kernel<<<gridsize, blocksize>>>(out, d_rays, number_of_projections, sampling_step_size,
                                                        volume_size, volume_spacing, volume_origin,
-                                                       detector_size, detector_spacing, detector_origin,sid,sdd);
+                                                       detector_size, detector_spacing, detector_origin, sid, sdd);
+
+    cudaUnbindTexture(volume_as_texture);
+    cudaFreeArray(volume_array);
+    cudaFree( d_rays );
 }
 
 #endif

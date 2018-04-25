@@ -23,9 +23,9 @@ output: A Tensor.
 )doc");
 
 void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                    const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
-                                    const float volume_origin_x, const float volume_origin_y,
-                                    const int detector_size, const float detector_spacing, const float detector_origin);
+                                               const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
+                                               const float volume_origin_x, const float volume_origin_y,
+                                               const int detector_size, const float detector_spacing, const float detector_origin);
 
 class ParallelBackprojection2DOp : public OpKernel
 {
@@ -103,8 +103,8 @@ class ParallelBackprojection2DOp : public OpKernel
 
         // Call the cuda kernel launcher
         Parallel_Backprojection2D_Kernel_Launcher(input.data(), output.data(), ray_vectors_.data(), number_of_projections,
-                                       volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
-                                       detector_size, detector_spacing, detector_origin);
+                                                  volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
+                                                  detector_size, detector_spacing, detector_origin);
     }
 };
 
