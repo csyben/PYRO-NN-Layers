@@ -227,7 +227,7 @@ void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const f
 
     cudaUnbindTexture(volume_as_texture);
     cudaFreeArray(volume_array);
-    cudaFree( d_rays );
+    cudaFree(d_rays);
 }
 
 #endif

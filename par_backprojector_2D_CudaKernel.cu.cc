@@ -113,9 +113,9 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
                                                                      volume_size, volume_spacing, volume_origin,
                                                                      detector_size, detector_spacing, detector_origin);
 
-    cudaUnbindTexture( sinogram_as_texture );
-    cudaFreeArray( sinogram_array );
-    cudaFree( d_rays );
+    cudaUnbindTexture(sinogram_as_texture);
+    cudaFreeArray(sinogram_array);
+    cudaFree(d_rays);
 }
 
 #endif

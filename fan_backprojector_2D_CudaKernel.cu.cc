@@ -48,6 +48,7 @@ inline __host__ __device__ float2 physical_to_index(float2 physical, float2 orig
 {
     return make_float2((physical.x - origin.x) / spacing.x, (physical.y - origin.y) / spacing.y);
 }
+
 inline __host__ __device__ float2 normalize(float2 v)
 {
     float invLen = rsqrtf(dot(v, v));
@@ -149,10 +150,9 @@ void Fan_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out,
                                                                      volume_size, volume_spacing, volume_origin,
                                                                      detector_size, detector_spacing, detector_origin, sid, sdd);
 
-
     cudaUnbindTexture(sinogram_as_texture);
     cudaFreeArray(sinogram_array);
-    cudaFree( d_rays );
+    cudaFree(d_rays);
 }
 
 #endif

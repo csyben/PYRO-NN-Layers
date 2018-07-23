@@ -15,7 +15,7 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("detector_spacing : tensor")
     .Attr("source_2_iso_distance : float")
     .Attr("source_2_detector_distance : float")
-    .Attr("ray_vectors : tensor")
+    .Attr("central_ray_vectors : tensor")
     .Output("output: float")
     .Doc(R"doc(
 Computes the 2D parallel backprojection of the input sinogram based on the given ray vectors
@@ -92,7 +92,7 @@ class FanBackprojection2DOp : public OpKernel
 
         //get rey vectors from attributes
         Tensor ray_vectors_tensor;
-        OP_REQUIRES_OK(context, context->GetAttr("ray_vectors", &ray_vectors_tensor));
+        OP_REQUIRES_OK(context, context->GetAttr("central_ray_vectors", &ray_vectors_tensor));
         auto ray_vectors_eigen = ray_vectors_tensor.tensor<float, 2>();
         ray_vectors_ = Eigen::Tensor<float, 2, Eigen::RowMajor>(ray_vectors_eigen);
     }
