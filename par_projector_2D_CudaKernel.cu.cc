@@ -1,8 +1,11 @@
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+//#include "helper_grid.h"
+//#include "helper_math.h"
 
-inline __host__ __device__ float2 operator*(float2 a, float b)
+
+  inline __host__ __device__ float2 operator*(float2 a, float b)
 {
     return make_float2(a.x * b, a.y * b);
 }
@@ -17,9 +20,9 @@ inline __host__ __device__ float2 operator/(float2 a, float2 b)
 inline __host__ __device__ float2 operator+(float2 a, float2 b)
 {
     return make_float2(a.x + b.x, a.y + b.y);
-}
+}   
 
-inline __host__ __device__ float index_to_physical(float index, float origin, float spacing)
+ inline __host__ __device__ float index_to_physical(float index, float origin, float spacing)
 {
     return index * spacing + origin;
 }
@@ -37,7 +40,7 @@ inline __host__ __device__ float2 index_to_physical(float2 index, float2 origin,
 inline __host__ __device__ float2 physical_to_index(float2 physical, float2 origin, float2 spacing)
 {
     return make_float2((physical.x - origin.x) / spacing.x, (physical.y - origin.y) / spacing.y);
-}
+} 
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
@@ -162,7 +165,7 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     float pixel = kernel_project2D(
         virtual_source_point,
         ray_vector,
-        sampling_step_size*fmin(volume_spacing.x,volume_spacing.y),
+        sampling_step_size * fmin(volume_spacing.x, volume_spacing.y),
         volume_size,
         volume_origin,
         volume_spacing);
@@ -209,11 +212,9 @@ void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, 
                                                        detector_size, detector_spacing, detector_origin);
 
     // cleanup
-    cudaUnbindTexture( volume_as_texture );
-    cudaFreeArray( volume_array );
-    cudaFree( d_rays );
+    cudaUnbindTexture(volume_as_texture);
+    cudaFreeArray(volume_array);
+    cudaFree(d_rays);
 }
-
-
 
 #endif
