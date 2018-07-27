@@ -22,7 +22,8 @@ tf_custom_op_library(
             "*.cu.cc",            
         ],
     ),
-    gpu_srcs = glob(["*.cu.cc"]), 
+    gpu_srcs = glob(["*.cu.cc"]),     
+    #hdrs = glob(["*.h"])
 )
 
 py_library(
