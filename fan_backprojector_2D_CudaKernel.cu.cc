@@ -1,77 +1,9 @@
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-//Make float2 inline helper Methods
-inline __host__ __device__ float2 operator*(float2 a, float b)
-{
-    return make_float2(a.x * b, a.y * b);
-}
-inline __host__ __device__ float2 operator*(float b, float2 a)
-{
-    return make_float2(b * a.x, b * a.y);
-}
-inline __host__ __device__ float2 operator/(float2 a, float2 b)
-{
-    return make_float2(a.x / b.x, a.y / b.y);
-}
-inline __host__ __device__ float2 operator+(float2 a, float2 b)
-{
-    return make_float2(a.x + b.x, a.y + b.y);
-}
-inline __host__ __device__ float2 operator-(float2 a, float2 b)
-{
-    return make_float2(a.x - b.x, a.y - b.y);
-}
-//Vector helper methods
-// dot product
-inline __host__ __device__ float dot(float2 a, float2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
-//Grid Calculations
-inline __host__ __device__ float index_to_physical(float index, float origin, float spacing)
-{
-    return index * spacing + origin;
-}
-
-inline __host__ __device__ float physical_to_index(float physical, float origin, float spacing)
-{
-    return (physical - origin) / spacing;
-}
-
-inline __host__ __device__ float2 index_to_physical(float2 index, float2 origin, float2 spacing)
-{
-    return make_float2(index.x * spacing.x + origin.x, index.y * spacing.y + origin.y);
-}
-
-inline __host__ __device__ float2 physical_to_index(float2 physical, float2 origin, float2 spacing)
-{
-    return make_float2((physical.x - origin.x) / spacing.x, (physical.y - origin.y) / spacing.y);
-}
-
-inline __host__ __device__ float2 normalize(float2 v)
-{
-    float invLen = rsqrtf(dot(v, v));
-    return v * invLen;
-}
-
-inline __device__ float2 intersectLines(float2 p1, float2 p2, float2 p3, float2 p4)
-{
-    float dNom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
-
-    if (dNom < 0.000001f && dNom > -0.000001f)
-    {
-        float2 retValue = {NAN, NAN};
-        return retValue;
-    }
-    float x = (p1.x * p2.y - p1.y * p2.x) * (p3.x - p4.x) - (p1.x - p2.x) * (p3.x * p4.y - p3.y * p4.x);
-    float y = (p1.x * p2.y - p1.y * p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x * p4.y - p3.y * p4.x);
-
-    x /= dNom;
-    y /= dNom;
-    float2 isectPt = {x, y};
-    return isectPt;
-}
+#include "helper_headers/helper_grid.h"
+#include "helper_headers/helper_math.h"
+#include "helper_headers/helper_geometry.h"
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
@@ -100,7 +32,7 @@ __global__ void backproject_2Dfan_beam_kernel(float *pVolume, const float2 *d_ra
         float2 source_position = central_ray * (-sid);
         float2 central_point = source_position + central_ray * sdd;
 
-        float2 intersection = intersectLines(pixel_coordinate, source_position, central_point, central_point + detector_vec);
+        float2 intersection = intersectLines2D(pixel_coordinate, source_position, central_point, central_point + detector_vec);
 
         float s = dot(intersection, detector_vec);
         unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);

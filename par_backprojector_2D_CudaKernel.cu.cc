@@ -1,49 +1,8 @@
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-//Make float2 inline helper Methods
-inline __host__ __device__ float2 operator*(float2 a, float b)
-{
-    return make_float2(a.x * b, a.y * b);
-}
-inline __host__ __device__ float2 operator*(float b, float2 a)
-{
-    return make_float2(b * a.x, b * a.y);
-}
-inline __host__ __device__ float2 operator/(float2 a, float2 b)
-{
-    return make_float2(a.x / b.x, a.y / b.y);
-}
-inline __host__ __device__ float2 operator+(float2 a, float2 b)
-{
-    return make_float2(a.x + b.x, a.y + b.y);
-}
-//Vector helper methods
-// dot product
-inline __host__ __device__ float dot(float2 a, float2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
-//Grid Calculations
-inline __host__ __device__ float index_to_physical(float index, float origin, float spacing)
-{
-    return index * spacing + origin;
-}
-
-inline __host__ __device__ float physical_to_index(float physical, float origin, float spacing)
-{
-    return (physical - origin) / spacing;
-}
-
-inline __host__ __device__ float2 index_to_physical(float2 index, float2 origin, float2 spacing)
-{
-    return make_float2(index.x * spacing.x + origin.x, index.y * spacing.y + origin.y);
-}
-
-inline __host__ __device__ float2 physical_to_index(float2 physical, float2 origin, float2 spacing)
-{
-    return make_float2((physical.x - origin.x) / spacing.x, (physical.y - origin.y) / spacing.y);
-}
+#include "helper_headers/helper_grid.h"
+#include "helper_headers/helper_math.h"
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
