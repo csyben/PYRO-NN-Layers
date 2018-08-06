@@ -5,6 +5,7 @@
 #include "helper_headers/helper_math.h"
 #include "helper_headers/helper_geometry.h"
 
+
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
