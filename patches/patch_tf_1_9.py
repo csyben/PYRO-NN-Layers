@@ -13,7 +13,7 @@ package_name = 'lme_custom_ops'
 #
 ###############################
 def build():
-    file_path = '../tensorflow/tools/pip_package/BUILD'
+    file_path = '../../tensorflow/tools/pip_package/BUILD'
     tf_build = open(file_path,'r')
     build = tf_build.read()
     tf_build.close()
@@ -40,7 +40,7 @@ def build():
 ###################################
 
 def build_pip_package():
-    file_path = '../tensorflow/tools/pip_package/build_pip_package.sh'
+    file_path = '../../tensorflow/tools/pip_package/build_pip_package.sh'
     tf_build = open(file_path,'r')
     build = tf_build.read()
     tf_build.close()
@@ -67,7 +67,7 @@ def build_pip_package():
 #
 ###################################
 def setup():
-    file_path = '../tensorflow/tools/pip_package/setup.py'
+    file_path = '../../tensorflow/tools/pip_package/setup.py'
     tf_build = open(file_path, 'r')
     build = tf_build.read()
     tf_build.close()
@@ -92,7 +92,7 @@ def setup():
 #
 ###################################
 def tensorflow():
-    file_path = '../tensorflow/tensorflow.bzl'
+    file_path = '../../tensorflow/tensorflow.bzl'
     tf_build = open(file_path, 'r')
     build = tf_build.read()
     tf_build.close()
@@ -114,7 +114,7 @@ def tensorflow():
 #
 ###################################
 def location_bugfix():
-    file_path = "../tensorflow/python/framework/python_op_gen_internal.cc"
+    file_path = "../../tensorflow/python/framework/python_op_gen_internal.cc"
     tf_build = open(file_path, 'r')
     build = tf_build.read()
     tf_build.close()
