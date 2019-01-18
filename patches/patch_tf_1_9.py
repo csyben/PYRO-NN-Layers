@@ -86,22 +86,6 @@ def setup():
         tf_build_w.flush()
         tf_build_w.close()
 
-###################################
-#
-#   We want to include .h files into the build process, thus we add hdrs=[] to the tf_custom_op_library macro
-#
-###################################
-def tensorflow():
-    file_path = '../../tensorflow/tensorflow.bzl'
-    tf_build = open(file_path, 'r')
-    build = tf_build.read()
-    tf_build.close()
-    build_updated = build.replace('def tf_custom_op_library(name, srcs=[], gpu_srcs=[], deps=[], linkopts=[]):',
-                                  'def tf_custom_op_library(name, srcs=[], gpu_srcs=[], hdrs=[], deps=[], linkopts=[]):')
-    tf_build_w = open(file_path, 'w')
-    tf_build_w.write(build_updated)
-    tf_build_w.flush()
-    tf_build_w.close()
 
 ###################################
 #
@@ -131,8 +115,6 @@ print('Prepare build_pip_package.sh in tensorflow/tools/pip_package/')
 build_pip_package()
 print('Prepare setup.py in tensorflow/tools/pip_package/')
 setup()
-print('Prepare tensorflow.bzl in tensorflow/')
-tensorflow()
 print('Apply bugfix for Tensorflow regarding String parsing w.r.t to location')
 location_bugfix()
 print('Tensorflow is patched')
