@@ -121,12 +121,10 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
     }
     return pixel;
 }
-//number_of_projections for boundary check neccessary ??
 __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const float *d_inv_AR_matrices, const float3 *d_src_points, const float sampling_step_size,
                                           const uint3 volume_size, const float3 volume_spacing,
                                           const uint2 detector_size, const int number_of_projections)
 {
-    //return;
     uint2 detector_idx = make_uint2( blockIdx.x * blockDim.x + threadIdx.x,  blockIdx.y* blockDim.y + threadIdx.y  );
     uint projection_number = blockIdx.z;
     if (detector_idx.x >= detector_size.x || detector_idx.y >= detector_size.y || blockIdx.z >= number_of_projections)
@@ -148,10 +146,9 @@ __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const fl
     float pixel = kernel_project3D_tex_interp(
         source_point,
         ray_vector,
-        sampling_step_size,// * fmin(volume_spacing.x, volume_spacing.y),
+        sampling_step_size,
         volume_size);
 
-    //TODO: Check sacling
     pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) +
             (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y) +
             (ray_vector.z * volume_spacing.z) * (ray_vector.z * volume_spacing.z));
@@ -162,6 +159,21 @@ __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const fl
     return;
 }
 
+/*************** WARNING ******************./
+    * 
+    *   Tensorflow is allocating the whole GPU memory for itself and just leave a small slack memory
+    *   using cudaMalloc and cudaMalloc3D will allocate memory in this small slack memory !
+    *   Therefore, currently only small volumes can be used (they have to fit into the slack memory which TF does not allocae !)
+    * 
+    *   This is the kernel based on texture interpolation, thus, the allocations are not within the Tensorflow managed memory.
+    *   If memory errors occure:
+    *    1. start Tensorflow with less gpu memory and allow growth
+    *    2. switch to software-based interpolation. 
+    * 
+    *   TODO: use context->allocate_tmp and context->allocate_persistent instead of cudaMalloc for the inv_AR_matrix and src_points array
+    *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
+    * 
+    */
 void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume_ptr, float *out, const float *inv_AR_matrix, const float *src_points, 
                                     const int number_of_projections, const int volume_width, const int volume_height, const int volume_depth, 
                                     const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
@@ -189,30 +201,12 @@ void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume
     //Malloc cuda array for texture
     cudaExtent volume_extent = make_cudaExtent(  volume_width, volume_height, volume_depth );
     cudaExtent volume_extent_byte = make_cudaExtent( sizeof(float)*volume_width, volume_height, volume_depth );
-    //TODO: pitched ptr from float *volumePtr does work, but the cudaArray below is still allocated using CUDA,
-    //which means still the texture volume lives outside of the tensorflow allocated memory.
 
     cudaPitchedPtr d_volumeMem = make_cudaPitchedPtr( const_cast<float*>( volume_ptr ),
                                                 volume_width*sizeof(float),
                                                 volume_width,
                                                 volume_height
                                             );
-    //gpuErrchk(cudaMalloc3D(&d_volumeMem, volume_extent_byte));
-    //size_t size = d_volumeMem.pitch * volume_height * volume_depth;
-    //cudaMemcpy(d_volumeMem.ptr, volume_ptr, size, cudaMemcpyHostToDevice);
-    
-    /*************** WARNING ******************./
-    * 
-    *   Tensorflow is allocating the whole GPU memory for itself and just leave a small slack memory
-    *   using cudaMalloc and cudaMalloc3D will allocate memory in this small slack memory !
-    *   Therefore, currently only small volumes can be used (they have to fit into the slack memory which TF does not allocae !)
-    *   The solution is to use the Tensorflow context to allocate memory within the gpu memory occupied by Tensorflow
-    * 
-    *   TODO: use context->allocate_tmp and context->allocate_persistent instead of cudaMalloc !
-    *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
-    * 
-    */
-
    
     cudaArray *volume_array;
     gpuErrchk(cudaMalloc3DArray(&volume_array, &channelDesc, volume_extent));
@@ -246,9 +240,6 @@ void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk(cudaFreeArray(volume_array));
     gpuErrchk(cudaUnbindTexture(volume_as_texture));
-
-    //gpuErrchk(cudaFree(d_volumeMem.ptr)); //no need to deconstruct pitched pointer ????
-
     gpuErrchk(cudaFree(d_inv_AR_matrices));
     gpuErrchk(cudaFree(d_src_points));
 }

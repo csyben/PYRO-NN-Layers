@@ -113,8 +113,7 @@ class ConeProjection3DOp : public OpKernel
          * 
          * WARNING: The following code is not created under memory and runtime performance point of view.
          *          A better conversion from Tensorflow Tensor to Eigen::Tensor and Eigen::Matrizes are probably neccessary !!!!
-         * ******************************;*************************************************************************************************************************************/
-
+         * ********************************************************************************************************************************************************************/
 
         Eigen::Matrix3f scaling_matrix(3,3);
         scaling_matrix.setZero();
@@ -134,16 +133,9 @@ class ConeProjection3DOp : public OpKernel
 
             auto c = (Geometry::getCameraCenter(proj_mat) * -1).eval();
 
-            //src_points(n,0) = -(- (volume_width - 1.0)/2.0 + c(0) * scaling_matrix(0,0));
-            //src_points(n,1) = -(- (volume_height - 1.0)/2.0 + c(1) * scaling_matrix(1,1));
-            //src_points(n,2) = -(- (volume_depth - 1.0)/2.0 + c(2) * scaling_matrix(2,2));
-
             src_points(n,0) = -((volume_origin_x * scaling_matrix(0,0)) + c(0) * scaling_matrix(0,0));
             src_points(n,1) = -((volume_origin_y * scaling_matrix(1,1)) + c(1) * scaling_matrix(1,1));
             src_points(n,2) = -((volume_origin_z * scaling_matrix(2,2)) + c(2) * scaling_matrix(2,2));
-
-
-            //auto inverted_result_temp = proj_mat.block<3,3>(0,0).completeOrthogonalDecomposition().pseudoInverse().eval();
 
             Eigen::Matrix<float,3,3, Eigen::RowMajor> inverted_scaled_result = (scaling_matrix * proj_mat.block<3,3>(0,0).inverse()).eval();
 
@@ -178,7 +170,7 @@ class ConeProjection3DOp : public OpKernel
                                                          &output_tensor));
         
         auto output = output_tensor->template flat<float>();
-        //std::cout << "hardware_interp: " << output_tensor->shape() << std::endl;
+
         if(hardware_interp){
             Cone_Projection_Kernel_Tex_Interp_Launcher(input.data(), output.data(), inv_AR_matrix.data(), src_points.data(), number_of_projections,
                                         volume_width, volume_height, volume_depth, volume_spacing_x, volume_spacing_y, volume_spacing_z,
@@ -187,15 +179,7 @@ class ConeProjection3DOp : public OpKernel
         else{
             //TODO:
             // allocate inv_ar_matrix, src_points with tensorflow context as temp memory.
-
-            // Tensor* inv_AR_matrix_tensor = nullptr;
-            // std::cout << "befor temp alloc" << std::endl;
-            // TensorShape matrix_shape = TensorShape({number_of_projections,4,3});
-            // // // temparily use this space
-            // OP_REQUIRES_OK(context, context->allocate_temp(DT_FLOAT,matrix_shape , inv_AR_matrix_tensor));
-            // auto test = inv_AR_matrix_tensor->flat<float>().data();
-            // std::cout << "tmp alloc finished, launch kernel" << std::endl;
-        // Call the cuda kernel launcher
+            // Call the cuda kernel launcher
             Cone_Projection_Kernel_Launcher(input.data(), output.data(), inv_AR_matrix.data(), src_points.data(), number_of_projections,
                                         volume_width, volume_height, volume_depth, volume_spacing_x, volume_spacing_y, volume_spacing_z,
                                         detector_size_x, detector_size_y,step_size, context);
