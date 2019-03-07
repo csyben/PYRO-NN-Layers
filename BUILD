@@ -17,12 +17,12 @@ exports_files(["LICENSE"])
 tf_custom_op_library(
     name = "lme_custom_ops.so",
     srcs = glob(
-        ["*.cc", "*.h", "helper_headers/*.h"],
+        ["*.cc", "*.h", "**/*.h"],
         exclude = [
             "*.cu.cc",            
         ],
     ),
-    gpu_srcs = glob(["*.cu.cc","*.h", "helper_headers/*.h"]),     
+    gpu_srcs = glob(["*.cu.cc","*.h", "**/*.h"]),     
 )
 
 py_library(
