@@ -19,7 +19,6 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
     float min_alpha, max_alpha;
     min_alpha = 0;
     max_alpha = CUDART_INF_F;
-    //TODO: fix min and max alpha calculation, min_alpha > max_alpha occures -> partial sinogram ?
 
     if (0.0f != ray_vector.x)
     {
@@ -44,13 +43,6 @@ __device__ float kernel_project2D(const float2 source_point, const float2 ray_ve
         min_alpha = fmax(min_alpha, fmin(alpha0, alpha1));
         max_alpha = fmin(max_alpha, fmax(alpha0, alpha1));
     }
-
-    // we start not at the exact entry point
-    // => we can be sure to be inside the volume
-    //min_alpha += step_size * 0.5f;
-
-    // Step 2: Cast ray if it intersects the volume
-    // Trapezoidal rule (interpolating function = piecewise linear func)
 
     float px, py;
     //pixel = source_point.x + min_alpha * ray_vector.x;
@@ -135,15 +127,28 @@ __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays
         volume_origin,
         volume_spacing);
 
-    //TODO: Check sacling
-    //pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
+    pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
 
     unsigned sinogram_idx = projection_idx * detector_size + detector_idx;
     pSinogram[sinogram_idx] = pixel;
 
     return;
 }
-
+/*************** WARNING ******************./
+    * 
+    *   Tensorflow is allocating the whole GPU memory for itself and just leave a small slack memory
+    *   using cudaMalloc and cudaMalloc3D will allocate memory in this small slack memory !
+    *   Therefore, currently only small volumes can be used (they have to fit into the slack memory which TF does not allocae !)
+    * 
+    *   This is the kernel based on texture interpolation, thus, the allocations are not within the Tensorflow managed memory.
+    *   If memory errors occure:
+    *    1. start Tensorflow with less gpu memory and allow growth
+    *    2. TODO: no software interpolation based 2D verions are available yet
+    * 
+    *   TODO: use context->allocate_tmp and context->allocate_persistent instead of cudaMalloc for the ray_vectors array
+    *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
+    * 
+    */
 void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
                                     const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
                                     const int detector_size, const float detector_spacing, const float detector_origin,

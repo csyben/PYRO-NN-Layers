@@ -3,7 +3,7 @@
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "helper_headers/helper_grid.h"
 #include "helper_headers/helper_math.h"
-#include "helper_headers/helper_geometry.h"
+#include "helper_headers/helper_geometry_gpu.h"
 
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> sinogram_as_texture;
@@ -46,7 +46,21 @@ __global__ void backproject_2Dfan_beam_kernel(float *pVolume, const float2 *d_ra
 
     return;
 }
-
+/*************** WARNING ******************./
+    * 
+    *   Tensorflow is allocating the whole GPU memory for itself and just leave a small slack memory
+    *   using cudaMalloc and cudaMalloc3D will allocate memory in this small slack memory !
+    *   Therefore, currently only small volumes can be used (they have to fit into the slack memory which TF does not allocae !)
+    * 
+    *   This is the kernel based on texture interpolation, thus, the allocations are not within the Tensorflow managed memory.
+    *   If memory errors occure:
+    *    1. start Tensorflow with less gpu memory and allow growth
+    *    2. TODO: no software interpolation based 2D verions are available yet
+    * 
+    *   TODO: use context->allocate_tmp and context->allocate_persistent instead of cudaMalloc for the ray_vectors array
+    *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
+    * 
+    */
 void Fan_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *ray_vectors, const int number_of_projections,
                                           const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y,
                                           const float volume_origin_x, const float volume_origin_y,
