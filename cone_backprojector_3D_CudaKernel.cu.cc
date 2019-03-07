@@ -1,0 +1,139 @@
+#if GOOGLE_CUDA
+#define EIGEN_USE_GPU
+#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "tensorflow/core/framework/op_kernel.h"
+#include "helper_headers/helper_grid.h"
+#include "helper_headers/helper_math.h"
+
+#define BLOCKSIZE_X           16
+#define BLOCKSIZE_Y           4
+#define BLOCKSIZE_Z           4
+
+texture<float, cudaTextureType2DLayered> sinogram_as_texture;
+
+#define CUDART_INF_F __int_as_float(0x7f800000)
+#define CUDART_PI_F 3.141592654f 
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
+inline __device__ float3 map( float3 coordinates, float* d_projection_matrices, int n )
+{
+   const float* matrix = &(d_projection_matrices[n*12]);
+
+   return make_float3(
+         matrix[0] * coordinates.x + matrix[1] * coordinates.y + matrix[2] * coordinates.z + matrix[3],
+         matrix[4] * coordinates.x + matrix[5] * coordinates.y + matrix[6] * coordinates.z + matrix[7],
+         matrix[8] * coordinates.x + matrix[9] * coordinates.y + matrix[10] * coordinates.z + matrix[11]
+   );
+}
+
+inline __device__ float interp2D(const float* const_volume_ptr, const float3 point, const uint3 pointer_offset, const uint2 detector_size){
+
+   const int x_f = __float2int_rn( floor(point.x) ); 
+   const int y_f = __float2int_rn( floor(point.y) );
+
+   const int x_c = x_f+1;
+   const int y_c = y_f+1;
+
+   int i00 =(uint)point.z*pointer_offset.z + y_f * pointer_offset.y + x_f;
+   int i01 =(uint)point.z*pointer_offset.z + y_f * pointer_offset.y + x_c;
+   int i10 =(uint)point.z*pointer_offset.z + y_c * pointer_offset.y + x_f;
+   int i11 =(uint)point.z*pointer_offset.z + y_c * pointer_offset.y + x_c;
+
+   float p00 = ( x_f < 0 || x_f > detector_size.x || y_f < 0 || y_f > detector_size.y ) ? 0.0f : __ldg(&const_volume_ptr[ i00 ]);
+   float p01 = ( x_c < 0 || x_c > detector_size.x || y_f < 0 || y_f > detector_size.y ) ? 0.0f : __ldg(&const_volume_ptr[ i01 ]);
+   float p10 = ( x_f < 0 || x_f > detector_size.x || y_c < 0 || y_c > detector_size.y ) ? 0.0f : __ldg(&const_volume_ptr[ i10 ]); 
+   float p11 = ( x_c < 0 || x_c > detector_size.x || y_c < 0 || y_c > detector_size.y ) ? 0.0f : __ldg(&const_volume_ptr[ i11 ]);
+
+   const float x_d = (point.x - x_f);
+   const float y_d = (point.y - y_f); 
+
+   const float p0 = __fmaf_rn(p01,x_d,__fmaf_rn(p00,-x_d,p00));
+   const float p1 = __fmaf_rn(p11,x_d,__fmaf_rn(p10,-x_d,p10));
+
+   const float p = __fmaf_rn(p1,y_d,__fmaf_rn(p0,-y_d,p0));
+
+   return p;
+}
+
+__global__ void backproject_3Dcone_beam_kernel( const float* sinogram_ptr, float* vol, float* d_projection_matrices, const int number_of_projections,
+                                                const uint3 volume_size, const float3 volume_spacing, const float3 volume_origin, const uint2 detector_size, 
+                                                const uint3 pointer_offsets, const float projection_multiplier)
+{
+   const int i = blockIdx.x*blockDim.x + threadIdx.x;
+   const int j = blockIdx.y*blockDim.y + threadIdx.y;
+   const int k = blockIdx.z*blockDim.z + threadIdx.z;
+   
+   if( i >= volume_size.x  || j >= volume_size.y || k >= volume_size.z )
+      return;
+    
+   const float3 coordinates = index_to_physical(make_float3(i,j,k),volume_origin,volume_spacing); 
+
+   float val = 0.0f;
+   
+   for( int n = 0; n < number_of_projections; ++n )
+   {
+      auto ip = map(coordinates , d_projection_matrices, n );
+
+      ip.z = 1.0f / ip.z;
+      ip.x *= ip.z;
+      ip.y *= ip.z;
+      float3 point = make_float3(ip.x, ip.y, n);
+      
+      val += interp2D(sinogram_ptr, point, pointer_offsets, detector_size) * ip.z * ip.z;
+   }
+
+   // linear volume address
+   const unsigned int l = volume_size.x * ( k*volume_size.y + j ) + i;
+   vol[l] = (val * projection_multiplier);
+}
+
+
+void Cone_Backprojection3D_Kernel_Launcher(const float *sinogram_ptr, float *out, const float *projection_matrices, const int number_of_projections,
+                                          const int volume_width, const int volume_height, const int volume_depth,
+                                          const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
+                                          const float volume_origin_x, const float volume_origin_y, const float volume_origin_z,
+                                          const int detector_width, const int detector_height, const float projection_multiplier)
+{  
+   //COPY matrix to graphics card as float array
+   auto matrices_size_b = number_of_projections * 12 * sizeof(float);
+   float *d_projection_matrices;
+   gpuErrchk(cudaMalloc(&d_projection_matrices, matrices_size_b));
+   gpuErrchk(cudaMemcpy(d_projection_matrices, projection_matrices, matrices_size_b, cudaMemcpyHostToDevice));
+
+   uint3 volume_size = make_uint3(volume_width, volume_height, volume_depth);
+   float3 volume_spacing = make_float3(volume_spacing_x, volume_spacing_y, volume_spacing_z);
+   float3 volume_origin = make_float3(volume_origin_x, volume_origin_y, volume_origin_z);
+
+   uint2 detector_size = make_uint2(detector_width, detector_height);
+
+   uint3 pointer_offsets = make_uint3(1,detector_width,detector_height*detector_width);
+
+   // launch kernel
+   const unsigned int gridsize_x = (volume_size.x-1) / BLOCKSIZE_X + 1;
+   const unsigned int gridsize_y = (volume_size.y-1) / BLOCKSIZE_Y + 1;
+   const unsigned int gridsize_z = (volume_size.z-1) / BLOCKSIZE_Z + 1;
+   const dim3 grid = dim3( gridsize_x, gridsize_y, gridsize_z );
+   const dim3 block = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, BLOCKSIZE_Z );
+   //std::cout <<  "backproject the gradients" << std::endl;
+
+   backproject_3Dcone_beam_kernel<<< grid, block >>>( sinogram_ptr, out, d_projection_matrices, number_of_projections,
+                                                         volume_size, volume_spacing, volume_origin, detector_size, pointer_offsets,
+                                                         projection_multiplier );
+
+
+   gpuErrchk(cudaUnbindTexture(sinogram_as_texture));
+   //gpuErrchk(cudaFreeArray(projArray));
+   //gpuErrchk(cudaFree(pitch_ptr.ptr)); //Same here ??????
+   gpuErrchk(cudaFree(d_projection_matrices));
+}
+
+#endif
