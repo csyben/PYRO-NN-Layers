@@ -12,7 +12,6 @@
 texture<float, cudaTextureType2DLayered> sinogram_as_texture;
 
 #define CUDART_INF_F __int_as_float(0x7f800000)
-#define CUDART_PI_F 3.141592654f 
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -123,7 +122,7 @@ void Cone_Backprojection3D_Kernel_Launcher(const float *sinogram_ptr, float *out
    const unsigned int gridsize_z = (volume_size.z-1) / BLOCKSIZE_Z + 1;
    const dim3 grid = dim3( gridsize_x, gridsize_y, gridsize_z );
    const dim3 block = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, BLOCKSIZE_Z );
-   //std::cout <<  "backproject the gradients" << std::endl;
+
 
    backproject_3Dcone_beam_kernel<<< grid, block >>>( sinogram_ptr, out, d_projection_matrices, number_of_projections,
                                                          volume_size, volume_spacing, volume_origin, detector_size, pointer_offsets,
@@ -131,8 +130,6 @@ void Cone_Backprojection3D_Kernel_Launcher(const float *sinogram_ptr, float *out
 
 
    gpuErrchk(cudaUnbindTexture(sinogram_as_texture));
-   //gpuErrchk(cudaFreeArray(projArray));
-   //gpuErrchk(cudaFree(pitch_ptr.ptr)); //Same here ??????
    gpuErrchk(cudaFree(d_projection_matrices));
 }
 

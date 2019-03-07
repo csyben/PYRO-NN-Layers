@@ -92,7 +92,7 @@ class ConeBackprojection3DOp : public OpKernel
 
         //get discretization invariant and constant part of distance
         OP_REQUIRES_OK(context, context->GetAttr("projection_multiplier", &projection_multiplier));
-
+        //TODO: Loop is not neseccary anymore, refactor to direct conversion
         //for each projection
         for (int n = 0; n < number_of_projections; n++)
         {   

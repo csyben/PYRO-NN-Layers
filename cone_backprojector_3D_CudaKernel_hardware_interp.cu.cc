@@ -4,7 +4,6 @@
 #include "tensorflow/core/framework/op_kernel.h"
 #include "helper_headers/helper_grid.h"
 #include "helper_headers/helper_math.h"
-//#include "helper_headers/helper_geometry_gpu.h"
 
 #define BLOCKSIZE_X           16
 #define BLOCKSIZE_Y           4
@@ -13,7 +12,6 @@
 texture<float, cudaTextureType2DLayered> sinogram_as_texture;
 
 #define CUDART_INF_F __int_as_float(0x7f800000)
-#define CUDART_PI_F 3.141592653589793f
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -46,9 +44,6 @@ __global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, float* d_
    
    if( i >= volume_size.x  || j >= volume_size.y || k >= volume_size.z )
       return;
-   //TODO: sid and sdd as parameter for layer
-   //float projectionMultiplier = (float)(750.0 * 1200.0*CUDART_PI_F / (float) number_of_projections); 
-   
    
    const float3 coordinates = index_to_physical(make_float3(i,j,k),volume_origin,volume_spacing); 
 
@@ -69,7 +64,21 @@ __global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, float* d_
    vol[l] = (val * projection_multiplier);
 }
 
-
+/*************** WARNING ******************./
+    * 
+    *   Tensorflow is allocating the whole GPU memory for itself and just leave a small slack memory
+    *   using cudaMalloc and cudaMalloc3D will allocate memory in this small slack memory !
+    *   Therefore, currently only small volumes can be used (they have to fit into the slack memory which TF does not allocae !)
+    * 
+    *   This is the kernel based on texture interpolation, thus, the allocations are not within the Tensorflow managed memory.
+    *   If memory errors occure:
+    *    1. start Tensorflow with less gpu memory and allow growth
+    *    2. switch to software-based interpolation. 
+    * 
+    *   TODO: use context->allocate_tmp and context->allocate_persistent instead of cudaMalloc for the projection_matrices array
+    *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
+    * 
+    */
 void Cone_Backprojection3D_Kernel_Tex_Interp_Launcher(const float *sinogram_ptr, float *out, const float *projection_matrices, const int number_of_projections,
                                           const int volume_width, const int volume_height, const int volume_depth,
                                           const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
@@ -129,14 +138,13 @@ void Cone_Backprojection3D_Kernel_Tex_Interp_Launcher(const float *sinogram_ptr,
     const unsigned int gridsize_z = (volume_size.z-1) / BLOCKSIZE_Z + 1;
     const dim3 grid = dim3( gridsize_x, gridsize_y, gridsize_z );
     const dim3 block = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, BLOCKSIZE_Z );
-    //std::cout <<  "backproject the gradients" << std::endl;
+
     backproject_3Dcone_beam_kernel_tex_interp<<< grid, block >>>( out, d_projection_matrices, number_of_projections,
                                                             volume_size, volume_spacing, volume_origin, projection_multiplier );
 
 
     gpuErrchk(cudaUnbindTexture(sinogram_as_texture));
     gpuErrchk(cudaFreeArray(projArray));
-    //gpuErrchk(cudaFree(pitch_ptr.ptr)); //Same here ??????
     gpuErrchk(cudaFree(d_projection_matrices));
 }
 
