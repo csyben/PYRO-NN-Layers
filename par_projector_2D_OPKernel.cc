@@ -21,14 +21,12 @@ Computes the 2D parallel forward projection of the input based on the given ray 
 output: A Tensor.
   output = A*x
 )doc");
-// volume_width, volume_height, volume_spacing_x, volume_spacing_y, volume_origin_x, volume_origin_y,
+
 
 void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
                                            const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
                                            const int detector_width, const float detector_spacing, const float detector_origin);
 
-/* void AddOneKernelLauncher(const float *volume_ptr, const int volume_width, const int volume_height, float *out);
- */
 class ParallelProjection2DOp : public OpKernel
 {
     TensorShape volume_shape;

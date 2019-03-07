@@ -19,7 +19,6 @@ inline __device__ float kernel_project2D(const float2 source_point, const float2
     float min_alpha, max_alpha;
     min_alpha = 0;
     max_alpha = CUDART_INF_F;
-    //TODO: fix min and max alpha calculation, min_alpha > max_alpha occures -> partial sinogram ?
     if (0.0f != ray_vector.x)
     {
         float volume_min_edge_point = index_to_physical(0, volume_origin.x, volume_spacing.x) - 0.5f;
@@ -43,13 +42,6 @@ inline __device__ float kernel_project2D(const float2 source_point, const float2
         min_alpha = fmax(min_alpha, fmin(alpha0, alpha1));
         max_alpha = fmin(max_alpha, fmax(alpha0, alpha1));
     }
-
-    // we start not at the exact entry point
-    // => we can be sure to be inside the volume
-    //min_alpha += step_size * 0.5f;
-
-    // Step 2: Cast ray if it intersects the volume
-    // Trapezoidal rule (interpolating function = piecewise linear func)
 
     float px, py;
     //pixel = source_point.x + min_alpha * ray_vector.x;
@@ -108,7 +100,6 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     //Preparations:
 
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
-    //TODO: use volume spacing to reduce ray length
     float sid = sqrt((float)(volume_size.x * volume_spacing.x * volume_size.x * volume_spacing.x) + (volume_size.y * volume_spacing.y * volume_size.y * volume_spacing.y)) * 1.2f;
 
     int projection_idx = blockIdx.y;
@@ -118,7 +109,6 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     float2 u_vec = make_float2(-ray_vector.y, ray_vector.x);
     //calculate physical coordinate of detector pixel
     float u = index_to_physical(detector_idx, detector_origin, detector_spacing);
-    //float u = detector_idx * detector_spacing + detector_mid;
 
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
@@ -132,8 +122,7 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
         volume_origin,
         volume_spacing);
 
-    //TODO: Check sacling
-    //pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
+    pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) + (ray_vector.y * volume_spacing.y) * (ray_vector.y * volume_spacing.y));
 
     unsigned sinogram_idx = projection_idx * detector_size + detector_idx;
     pSinogram[sinogram_idx] = pixel;
