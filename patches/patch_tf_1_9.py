@@ -98,12 +98,12 @@ def setup():
 #
 ###################################
 def location_bugfix():
-    file_path = "../../tensorflow/python/framework/python_op_gen_internal.cc"
+    file_path = "../tensorflow/python/framework/python_op_gen_internal.cc"
     tf_build = open(file_path, 'r')
     build = tf_build.read()
     tf_build.close()
-    pattern = re.compile('def tf_custom_op_library\(name.*?srcs.*?gpu_srcs.*?deps.*?linkopts.*?\):')
-    build_updated = re.sub(pattern,'def tf_custom_op_library(name, srcs=[], gpu_srcs=[], hdrs=[], deps=[], linkopts=[]):',build)
+    build_updated = build.replace('return strings::StrCat(value.f());',
+                                  'std::ostringstream s;\n s.imbue(std::locale::classic());\n s << value.f();\n return s.str();')
     tf_build_w = open(file_path, 'w')
     tf_build_w.write(build_updated)
     tf_build_w.flush()
