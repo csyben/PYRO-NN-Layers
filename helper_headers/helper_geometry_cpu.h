@@ -2,7 +2,6 @@
 #ifndef HELPER_GEOMETRY_CPU_H
 #define HELPER_GEOMETRY_CPU_H
 #pragma once
-//#include "SingularValueDecomposition.h"
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 
@@ -25,3 +24,8 @@ namespace Geometry{
     }
 }
 #endif
+
+/*
+ * Helper methods to prepare projection matrices for projector kernel
+ * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+*/

@@ -1,24 +1,3 @@
-/**
- * Copyright 1993-2012 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- *
- */
-
-/*
- *  This file implements common mathematical operations on vector types
- *  (float3, float4 etc.) since these are not provided as standard by CUDA.
- *
- *  The syntax is modeled on the Cg standard library.
- *
- *  This is part of the Helper library includes
- *
- *    Thanks to Linh Hah for additions and fixes.
- */
 #pragma once
 #ifndef HELPER_GEOMETRY_GPU_H
 #define HELPER_GEOMETRY_GPU_H
@@ -47,3 +26,8 @@ inline __device__ float2 intersectLines2D(float2 p1, float2 p2, float2 p3, float
 #endif
 
 
+/*
+ * Computes line intersection for projector kernel
+ * Implementation is adapted from CONRAD
+ * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+*/

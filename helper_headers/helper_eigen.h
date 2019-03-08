@@ -16,4 +16,7 @@ Eigen::Tensor< Scalar, sizeof... (Dims)> Matrix_to_Tensor(const MatrixType<Scala
     return Eigen::TensorMap<Eigen::Tensor<const Scalar, rank>>(matrix.data(), {dims...});
 }
 
-//Conversion from: https://stackoverflow.com/questions/48795789/eigen-unsupported-tensor-to-eigen-matrix
+/*
+ * Conversion from: https://stackoverflow.com/questions/48795789/eigen-unsupported-tensor-to-eigen-matrix
+ * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+*/
