@@ -108,5 +108,4 @@ void Fan_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out,
 /*
  * Voxel-driven fan-beam back-projection CUDA kernel
  * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
- * Copyright (C) 2019  Christopher Syben
 */

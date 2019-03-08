@@ -15,5 +15,4 @@ if tf.test.is_built_with_cuda():
 #
  # Makes every implemented operator in python available under the namespace PyRo-ML
  # PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
- # Copyright (C) 2019  Christopher Syben
 #

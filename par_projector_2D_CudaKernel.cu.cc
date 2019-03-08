@@ -175,5 +175,4 @@ void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, 
  * Voxel-driven parllel-beam projector CUDA kernel
  * Implementation partially adapted from CONRAD
  * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
- * Copyright (C) 2019  Christopher Syben
 */
