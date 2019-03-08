@@ -92,7 +92,7 @@ class ConeProjection3DOp : public OpKernel
         Tensor projection_matrices_tensor;
         OP_REQUIRES_OK(context, context->GetAttr("projection_matrices", &projection_matrices_tensor));
         auto projection_matrices_eigen = projection_matrices_tensor.tensor<float, 3>();
-       // projection_matrices_shape = projection_matrices_tensor.shape();
+        // projection_matrices_shape = projection_matrices_tensor.shape();
         //Init src_point and inv_ar_matrix tensors
         //get stepsize
         OP_REQUIRES_OK(context, context->GetAttr("step_size", &step_size));
