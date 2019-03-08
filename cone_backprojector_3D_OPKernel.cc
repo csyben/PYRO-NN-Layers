@@ -139,3 +139,9 @@ class ConeBackprojection3DOp : public OpKernel
 };
 
 REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), ConeBackprojection3DOp);
+
+/*
+ * Links the cone-beam projector layer from python to the actual kernel implementation. Implemented according to Tensorflow API.
+ * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * Copyright (C) 2019  Christopher Syben
+*/

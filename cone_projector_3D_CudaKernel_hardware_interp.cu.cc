@@ -245,3 +245,11 @@ void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume
 }
 
 #endif
+
+
+/*
+ * Ray-driven cone-beam projector CUDA kernel
+ * Implementation adapted from CONRAD
+ * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * Copyright (C) 2019  Christopher Syben
+*/
