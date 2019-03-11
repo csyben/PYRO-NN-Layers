@@ -4,18 +4,18 @@ import subprocess
 
 
 if tf.test.is_built_with_cuda():
-    shared_object = join(dirname(__file__), '../../bazel-bin/lme_custom_ops/lme_custom_ops.so')
+    shared_object = join(dirname(__file__), '../../bazel-bin/pyronn_layers/pyronn_layers.so')
     if not exists(shared_object):
-        print('Trying to build bazel-bin/lme_custom_ops/lme_custom_ops.so')
-        subprocess.run(['bazel', 'build', '//lme_custom_ops:lme_custom_ops.so'])
+        print('Trying to build bazel-bin/pyronn_layers/pyronn_layers.so')
+        subprocess.run(['bazel', 'build', '//pyronn_layers:pyronn_layers.so'])
 
 
-    _lme_custom_ops_module = tf.load_op_library(shared_object)
+    _pyronn_layers_module = tf.load_op_library(shared_object)
 
         
     print('Loading shared object...')
-    for obj in dir(_lme_custom_ops_module):
-        globals()[obj] = getattr(_lme_custom_ops_module, obj)
+    for obj in dir(_pyronn_layers_module):
+        globals()[obj] = getattr(_pyronn_layers_module, obj)
         print('\t' + str(obj))
 else:
     print('Not built with CUDA')

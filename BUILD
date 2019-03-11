@@ -15,7 +15,7 @@ load("//tensorflow:tensorflow.bzl", "tf_cc_binary")
 exports_files(["LICENSE"])
 
 tf_custom_op_library(
-    name = "lme_custom_ops.so",
+    name = "pyronn_layers.so",
     srcs = glob(
         ["*.cc", "*.h", "**/*.h"],
         exclude = [
@@ -28,13 +28,13 @@ tf_custom_op_library(
 py_library(
     name = "cuda_operator",
     srcs = ["cuda_operator.py"],
-    data = [":lme_custom_ops.so"],
+    data = [":pyronn_layers.so"],
     srcs_version = "PY2AND3",
     deps = ["//tensorflow:tensorflow_py"],
 )
 
 ''' filegroup(
-    name = "lme_custom_ops",
+    name = "pyronn_layers",
     srcs = glob(
         ["*.cc"]
     ),

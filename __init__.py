@@ -1,1 +1,1 @@
-import lme_custom_ops.cuda_operator
+import pyronn_layers.cuda_operator

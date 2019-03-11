@@ -1,14 +1,14 @@
 import os.path
 import tensorflow as tf
-import lme_custom_ops
+import pyronn_layers
 
 
 if tf.test.is_built_with_cuda():
-    _lme_custom_ops_module = tf.load_op_library(os.path.join(
-        tf.resource_loader.get_data_files_path(), 'lme_custom_ops.so'))
+    _pyronn_layers_module = tf.load_op_library(os.path.join(
+        tf.resource_loader.get_data_files_path(), 'pyronn_layers.so'))
     ''' TODO: Improve the getattr method to add only real kernel methods and not everything '''
-    for obj in dir(_lme_custom_ops_module):
-        setattr(lme_custom_ops, obj, getattr(_lme_custom_ops_module, obj))
+    for obj in dir(_pyronn_layers_module):
+        setattr(pyronn_layers, obj, getattr(_pyronn_layers_module, obj))
 
 
 
