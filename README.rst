@@ -37,18 +37,23 @@ Checkout a release branch from Tensorflow:
     git checkout branch_name  # r1.9, r1.12, etc.
 
 Now the reconstruction operators need to be added to the build process.
-To achieve this, the PRYO-NN-Layers repository need to be cloned into a the 'pyronn_layers' subfolder withing the Tensorflow source directory:
+To achieve this, the PRYO-NN-Layers repository need to be cloned into a 'pyronn_layers' subfolder withing the Tensorflow source directory:
 
 .. code-block:: bash
 
     git clone https://github.com/csyben/PYRO-NN-Layers pyronn_layers
 
+Next step is to patch the Tensorflow build process such that all C++ and CUDA files in the pyronn_layers folder are compiled and
+made available under the pyronn_layers namespace at the python level.
 
+.. code-block:: bash
 
-
+    cd pyronn_layers/patches/
+    python3 patch_tf_1_12.py
 
 Tests
 =====
+
 
 
 Changelog
