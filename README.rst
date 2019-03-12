@@ -99,8 +99,18 @@ or use
 Potential Challenges
 ====================
 
+Memory consumption on the graphics card can be a problem with CT datasets. For the reconstruction operators the input data is passed via a Tensorflow tensor,
+which is already allocated on the graphicscard by Tensorflow itself. In fact without any manual configuration Tensorflow will allocate most of
+the graphics card memory and handle the memory management internally. This leads to the problem that CUDA malloc calls in the operators itself will allocate
+memory outside of the Tensorflow context, which can easily lead to out of memory errors, although the memory is not full.
 
+.. code-block:: python
 
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.5
+    config.gpu_options.allow_growth = True
+    # ------------------ Call Layers ------------------
+    with tf.Session(config=config) as sess:
 
 Changelog
 =========
