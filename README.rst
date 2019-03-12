@@ -139,6 +139,6 @@ Reference
 
 Applications
 ============
-.. [GCPR2018] `Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
+.. `Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
 
 
