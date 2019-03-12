@@ -130,3 +130,21 @@ Changelog
 =========
 
 Can be found `CHANGELOG.md <https://github.com/csyben/PYRO-NN-Layers/blob/master/CHANGELOG.md>`_.
+
+
+Reference
+=========
+
+
+Applications
+============
+.. [GCPR2018] Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion
+   @inproceedings{GCPR2018,
+	pages={1--15},
+	author={Christopher Syben and Bernhard Stimpel and Jonathan Lommen and Tobias W{\"u}rfl and Arnd D{\"o}rfler and Andreas Maier},
+	location={Stuttgart},
+	url={https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf},
+	title={{Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion}},
+	booktitle={{Pattern Recognition, 40th German Conference}},
+	year={2018},
+} 
