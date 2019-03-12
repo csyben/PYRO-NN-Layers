@@ -49,7 +49,7 @@ made available under the pyronn_layers namespace at the python level. Select the
 .. code-block:: bash
 
     cd pyronn_layers/patches/
-    python3 patch_tf_1_12.py
+    python3  patch_version  # patch_tf_1_9, patch_tf_1_12.py, etc.
 
 Now everything is setup to build Tensorflow and the reconstruction operators. For this change back to the source directory of Tensorflow. 
 
