@@ -1,6 +1,3 @@
-# Description:
-# Code examples referenced by adding_an_op
-
 package(
     default_visibility = ["//tensorflow:internal"],
 )

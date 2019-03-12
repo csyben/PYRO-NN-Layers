@@ -139,5 +139,5 @@ void Cone_Backprojection3D_Kernel_Launcher(const float *sinogram_ptr, float *out
 /*
  * Voxel-driven cone-beam back-projector CUDA kernel using software interpolation
  * Implementation adapted from CONRAD
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

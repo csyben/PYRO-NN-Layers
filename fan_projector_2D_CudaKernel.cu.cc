@@ -190,5 +190,5 @@ void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const f
 #endif
 /*
  * Ray-driven fan-beam projector CUDA kernel.
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */
