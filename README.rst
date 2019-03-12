@@ -85,6 +85,16 @@ This wheele package can be now installed via pip:
 
     pip3 install ./pip_package/<FileName>
 
+Now verything is setup and the reconstruction operators can be found under pyronn_layers namespace. 
+For a more convinient use of these operators the pyronn pip package is provided under:
+
+https://github.com/csyben/PYRO-NN
+
+or use
+
+.. code-block:: bash
+
+    pip3 install pyronn
 
 Tests
 =====
