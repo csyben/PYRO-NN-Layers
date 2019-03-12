@@ -49,7 +49,7 @@ made available under the pyronn_layers namespace at the python level. Select the
 .. code-block:: bash
 
     cd pyronn_layers/patches/
-    python3  patch_version  # patch_tf_1_9, patch_tf_1_12.py, etc.
+    python3  patch_version # patch_tf_1_9.py, patch_tf_1_12.py, etc.
 
 Now everything is setup to build Tensorflow and the reconstruction operators. For this change back to the source directory of Tensorflow. 
 
@@ -63,8 +63,8 @@ The Tensorflow build process need to be configured, for that type:
 
     ./configure
 
-For a detailed description follow the Tensorflow guidlines itself (https://www.tensorflow.org/install/source). 
-In short, choose the python interpreter and the CUDA version which is used to create the package.
+For a detailed description follow the Tensorflow guidelines itself (https://www.tensorflow.org/install/source). 
+In short, choose the python interpreter and the CUDA version which sould be used to create the package.
 
 After the confguration the sources can be compiled with
 
