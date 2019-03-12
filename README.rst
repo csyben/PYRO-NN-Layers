@@ -104,6 +104,11 @@ which is already allocated on the graphicscard by Tensorflow itself. In fact wit
 the graphics card memory and handle the memory management internally. This leads to the problem that CUDA malloc calls in the operators itself will allocate
 memory outside of the Tensorflow context, which can easily lead to out of memory errors, although the memory is not full.
 
+There exist two ways of dealing with this problem:
+
+1. A convinient way is to reduce the initally allocated memory by Tensorflow itself and allow a memory growth. We suggest to always use this mechanism 
+to minimize the occurance of out of memory errors:
+
 .. code-block:: python
 
     config = tf.ConfigProto()
@@ -111,6 +116,14 @@ memory outside of the Tensorflow context, which can easily lead to out of memory
     config.gpu_options.allow_growth = True
     # ------------------ Call Layers ------------------
     with tf.Session(config=config) as sess:
+
+2. The memory consuming operators like 3D cone-beam projection and back-projection have a so called hardware_interp flag. This means that the
+interpolation for both operators are either done by the CUDA texture or based on software interpolation. To use the CUDA texture, 
+and thus have a fast hardware_interpinterpolation, the input data need to be copied into a new CUDA array, thus consuming the double amount of memory. 
+In the case of large data or deeper networks it could be favorable to switch to the software interpolation mode. In this case the actual Tensorflow pointer
+can directly be used in the kernel without any duplication of the data. The downside is that the interpolation takes nearly 10 times longer.
+
+
 
 Changelog
 =========
