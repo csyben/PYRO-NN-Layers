@@ -17,7 +17,6 @@ def build():
     tf_build = open(file_path,'r')
     build = tf_build.read()
     tf_build.close()
-    #pattern = re.compile('sh_binary\(.*?\]\),\n\)',re.DOTALL)
     pattern = re.compile('sh_binary.*?COMMON_PIP_DEPS.*?\],\n', re.DOTALL)
 
     for m in pattern.finditer(build):
@@ -27,7 +26,6 @@ def build():
 
         start_pos = e - 4
         build = build[:start_pos] + '"//'+package_name+':'+package_name+'.so",\n' + build[start_pos:]
-        #build = build[:start_pos] + '"//lme_custom_ops:lme_custom_ops.so",\n' + build[start_pos:]
         tf_build_w = open(file_path, 'w')
         tf_build_w.write(build)
         tf_build_w.flush()
@@ -55,7 +53,6 @@ def build_pip_package():
 
         build = build[:insert_position] + '\n  cp -r '+package_name+' ${TMPDIR}\n  cp -r bazel-bin/'+package_name+'/*.so ${TMPDIR}/'+package_name + build[insert_position:]
 
-        #build = build[:insert_position] + '\n  cp -r lme_custom_ops ${TMPDIR}\n  cp -r bazel-bin/lme_custom_ops/*.so ${TMPDIR}/lme_custom_ops' + build[insert_position:]
         tf_build_w = open(file_path, 'w')
         tf_build_w.write(build)
         tf_build_w.flush()
@@ -71,7 +68,6 @@ def setup():
     tf_build = open(file_path, 'r')
     build = tf_build.read()
     tf_build.close()
-    # pattern = re.compile('sh_binary\(.*?\]\),\n\)',re.DOTALL)
     pattern = re.compile('headers.*?setup\(\n', re.DOTALL)
 
     for m in pattern.finditer(build):
