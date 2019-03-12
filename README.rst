@@ -1,8 +1,8 @@
-# FRAMEWORK
+FRAMEWORK
+==========
 
-
-### PYRO-NN-Layers
-
+PYRO-NN-Layers
+========
 
 Python Reconstruction Operators in Machine Learning (PYRO-NN-Layers) brings state-of-the-art reconstruction algorithm to
 neuralnetwork integrated into Tensorflow. This Repository contains the actual Layer implementation as CUDA kernels and 
@@ -13,7 +13,8 @@ For convinient use of the layers also install https://github.com/csyben/PYRO-NN
 The publication can be found under (https://frameworkpaper)
 
 
-### Installation
+Installation
+============
 
 To build the reconstruction operators into the Tensorflow package, the Tensorflow sources need to be prepared.
 
