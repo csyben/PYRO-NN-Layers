@@ -5,7 +5,7 @@ import re
 #   Name of the folder with the contribution sources
 #
 ###############################
-package_name = 'lme_custom_ops'
+package_name = 'pyronn_layers'
 
 ###############################
 #
