@@ -138,8 +138,7 @@ Reference
 
 Applications
 ============
-.. [GCPR2018] Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion
-	Christopher Syben and Bernhard Stimpel and Jonathan Lommen and Tobias W{\"u}rfl and Arnd D{\"o}rfler and Andreas Maier,
-	url={https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf},
-	booktitle={{Pattern Recognition, 40th German Conference}},
-	year={2018},
+.. [GCPR2018] `Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion<https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
+
+	Syben, Christopher; Stimpel, Bernhard; Lommen, Jonathan; Würfl, Tobias; Dörfler, Arnd; Maier, Andreas
+
