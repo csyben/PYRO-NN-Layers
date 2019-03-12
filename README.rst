@@ -139,6 +139,8 @@ Reference
 
 Applications
 ============
-.. `Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
+.. [GCPR2018] `Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
+.. [CTMeeting18] `Precision Learning: Reconstruction Filter Kernel Discretization <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-PLR.pdf>`_.
+
 
 
