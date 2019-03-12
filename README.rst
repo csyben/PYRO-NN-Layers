@@ -5,10 +5,10 @@ PYRO-NN-Layers
 ========
 
 Python Reconstruction Operators in Machine Learning (PYRO-NN-Layers) brings state-of-the-art reconstruction algorithm to
-neuralnetwork integrated into Tensorflow. This Repository contains the actual Layer implementation as CUDA kernels and 
+neural network integrated into Tensorflow. This Repository contains the actual Layer implementation as CUDA kernels and 
 the necessary C++ Information Control Classes according to Tensorflow API.
 
-For convinient use of the layers also install https://github.com/csyben/PYRO-NN
+For convenient use of the layers also install https://github.com/csyben/PYRO-NN
 
 The publication can be found under (https://frameworkpaper)
 
@@ -19,7 +19,7 @@ Installation
 To build the reconstruction operators into the Tensorflow package, the Tensorflow sources need to be prepared.
 
 To build the sources following tools are necessary: Python, Bazel, CUDA.
-Please prepare the system according to the Tensorflow 'Build from sources' guidlines: https://www.tensorflow.org/install/source . 
+Please prepare the system according to the Tensorflow 'Build from sources' guidelines: https://www.tensorflow.org/install/source . 
  
 If all necessary tools are installed the build process can start:
 
@@ -106,8 +106,8 @@ memory outside of the Tensorflow context, which can easily lead to out of memory
 
 There exist two ways of dealing with this problem:
 
-1. A convinient way is to reduce the initally allocated memory by Tensorflow itself and allow a memory growth. We suggest to always use this mechanism 
-to minimize the occurance of out of memory errors:
+1. A convenient way is to reduce the initially allocated memory by Tensorflow itself and allow a memory growth. We suggest to always use this mechanism 
+to minimize the occurrence of out of memory errors:
 
 .. code-block:: python
 
@@ -116,10 +116,11 @@ to minimize the occurance of out of memory errors:
     config.gpu_options.allow_growth = True
     # ------------------ Call Layers ------------------
     with tf.Session(config=config) as sess:
+        ...
 
 2. The memory consuming operators like 3D cone-beam projection and back-projection have a so called hardware_interp flag. This means that the
 interpolation for both operators are either done by the CUDA texture or based on software interpolation. To use the CUDA texture, 
-and thus have a fast hardware_interpinterpolation, the input data need to be copied into a new CUDA array, thus consuming the double amount of memory. 
+and thus have a fast hardware_interpolation, the input data need to be copied into a new CUDA array, thus consuming the double amount of memory. 
 In the case of large data or deeper networks it could be favorable to switch to the software interpolation mode. In this case the actual Tensorflow pointer
 can directly be used in the kernel without any duplication of the data. The downside is that the interpolation takes nearly 10 times longer.
 
@@ -128,4 +129,4 @@ can directly be used in the kernel without any duplication of the data. The down
 Changelog
 =========
 
-Can be found `CHANGELOG.md `_.
+Can be found `CHANGELOG.md <https://github.com/csyben/PYRO-NN-Layers/blob/master/CHANGELOG.md>`_.
