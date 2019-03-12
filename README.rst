@@ -44,12 +44,47 @@ To achieve this, the PRYO-NN-Layers repository need to be cloned into a 'pyronn_
     git clone https://github.com/csyben/PYRO-NN-Layers pyronn_layers
 
 Next step is to patch the Tensorflow build process such that all C++ and CUDA files in the pyronn_layers folder are compiled and
-made available under the pyronn_layers namespace at the python level.
+made available under the pyronn_layers namespace at the python level. Select the respective patch for the choosen release version of Tensorflow.
 
 .. code-block:: bash
 
     cd pyronn_layers/patches/
     python3 patch_tf_1_12.py
+
+Now everything is setup to build Tensorflow and the reconstruction operators. For this change back to the source directory of Tensorflow. 
+
+.. code-block:: bash
+
+    cd ../..
+
+The Tensorflow build process need to be configured, for that type:
+
+.. code-block:: bash
+
+    ./configure
+
+For a detailed description follow the Tensorflow guidlines itself (https://www.tensorflow.org/install/source). 
+In short, choose the python interpreter and the CUDA version which is used to create the package.
+
+After the confguration the sources can be compiled with
+
+.. code-block:: bash
+
+    bazel build --config=opt --config=cuda //tensorflow/tools/pip_package:build_pip_package
+
+The pip_package can be then build with 
+
+.. code-block:: bash
+
+    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package/
+
+The Tensorflow wheele file including the reconstruction operators can be found in the pip_package folder.
+This wheele package can be now installed via pip:
+
+.. code-block:: bash
+
+    pip3 install ./pip_package/<FileName>
+
 
 Tests
 =====
