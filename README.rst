@@ -33,12 +33,14 @@ First clone the Tensorflow repository:
 Checkout a release branch from Tensorflow:
 
 .. code-block:: bash
+
     git checkout branch_name  # r1.9, r1.12, etc.
 
 Now the reconstruction operators need to be added to the build process.
 To achieve this, the PRYO-NN-Layers repository need to be cloned into a the 'pyronn_layers' subfolder withing the Tensorflow source directory:
 
 .. code-block:: bash
+
     git clone https://github.com/csyben/PYRO-NN-Layers pyronn_layers
 
 
