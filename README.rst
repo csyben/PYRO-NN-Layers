@@ -135,8 +135,7 @@ Can be found `CHANGELOG.md <https://github.com/csyben/PYRO-NN-Layers/blob/master
 Reference
 =========
 
-
-`Deriving Neural Network Architectures using Precision Learning: Parallel-to-fan beam Conversion <https://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2018/Syben18-DNN.pdf>`_.
+`PYRO-NN: Python Reconstruction Operators in Neural Networks <https://www.pdf>`_.
 
 Applications
 ============
