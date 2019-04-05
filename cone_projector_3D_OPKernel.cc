@@ -16,6 +16,7 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("projection_matrices : tensor")
     .Attr("hardware_interp : bool = false")
     .Attr("step_size: float = 1.0")
+    .Attr("projection_multiplier : float")
     .Output("output: float")
     .Doc(R"doc(
 Computes the 3D cone forward projection of the input based on the given the trajectory
@@ -48,6 +49,8 @@ class ConeProjection3DOp : public OpKernel
 
     float step_size;
     bool hardware_interp;
+
+    float projection_multiplier;
 
     Eigen::Tensor<float, 3, Eigen::RowMajor> projection_matrices;
     //TensorShape projection_matrices_shape;
@@ -99,6 +102,9 @@ class ConeProjection3DOp : public OpKernel
 
         //get hardware interpolation flag
         OP_REQUIRES_OK(context, context->GetAttr("hardware_interp", &hardware_interp));
+
+        //Projectionmultiplier for backprojection as gradient
+        OP_REQUIRES_OK(context, context->GetAttr("projection_multiplier", &projection_multiplier));
 
         src_points = Eigen::Tensor<float, 2, Eigen::RowMajor>(number_of_projections,3);
         inv_AR_matrix = Eigen::Tensor<float, 3, Eigen::RowMajor>(number_of_projections,3,3);

@@ -14,6 +14,7 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("projection_multiplier : float")
     .Attr("projection_matrices : tensor")
     .Attr("hardware_interp : bool = false")
+    .Attr("step_size : float")
     .Output("output: float")
     .Doc(R"doc(
 Computes the 3D cone backprojection of the input sinogram on the given the trajectory
@@ -51,6 +52,7 @@ class ConeBackprojection3DOp : public OpKernel
     Eigen::Tensor<float, 3, Eigen::RowMajor> projection_matrices;
 
     bool hardware_interp;
+    float step_size;
 
   public:
     explicit ConeBackprojection3DOp(OpKernelConstruction *context) : OpKernel(context)
@@ -92,6 +94,10 @@ class ConeBackprojection3DOp : public OpKernel
 
         //get discretization invariant and constant part of distance
         OP_REQUIRES_OK(context, context->GetAttr("projection_multiplier", &projection_multiplier));
+
+        //set_size for projection operator as gradient
+        OP_REQUIRES_OK(context, context->GetAttr("step_size", &step_size));
+
         //TODO: Loop is not neseccary anymore, refactor to direct conversion
         //for each projection
         for (int n = 0; n < number_of_projections; n++)
