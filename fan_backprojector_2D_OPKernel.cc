@@ -13,7 +13,7 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("detector_origin : tensor")
     .Attr("volume_spacing : tensor")
     .Attr("detector_spacing : tensor")
-    .Attr("source_2_iso_distance : float")
+    .Attr("source_2_isocenter_distance : float")
     .Attr("source_2_detector_distance : float")
     .Attr("central_ray_vectors : tensor")
     .Output("output: float")
@@ -87,7 +87,7 @@ class FanBackprojection2DOp : public OpKernel
         auto detector_spacing_eigen = detector_spacing_tensor.tensor<float, 1>();
         detector_spacing = detector_spacing_eigen(0);
 
-        OP_REQUIRES_OK(context, context->GetAttr("source_2_iso_distance", &sid));
+        OP_REQUIRES_OK(context, context->GetAttr("source_2_isocenter_distance", &sid));
         OP_REQUIRES_OK(context, context->GetAttr("source_2_detector_distance", &sdd));
 
         //get rey vectors from attributes
