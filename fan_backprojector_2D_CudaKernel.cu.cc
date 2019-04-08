@@ -34,15 +34,15 @@ __global__ void backproject_2Dfan_beam_kernel(float *pVolume, const float2 *d_ra
         float2 central_point = source_position + central_ray * sdd;
 
         float2 intersection = intersectLines2D(pixel_coordinate, source_position, central_point, central_point + detector_vec);
-
+        float distance_weight = 1.0f / (float)length(pixel_coordinate - source_position);
         float s = dot(intersection, detector_vec);
         unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);
 
-        pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f);
+        pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f) * distance_weight * distance_weight;
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = 2 * pi * pixel_value / number_of_projections;
+    pVolume[volume_linearized_idx] = sid * sdd * pi * pixel_value / number_of_projections;
 
     return;
 }
@@ -107,5 +107,5 @@ void Fan_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float *out,
 
 /*
  * Voxel-driven fan-beam back-projection CUDA kernel
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

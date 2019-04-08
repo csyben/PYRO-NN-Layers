@@ -29,5 +29,5 @@ inline __device__ float2 intersectLines2D(float2 p1, float2 p2, float2 p3, float
 /*
  * Computes line intersection for projector kernel
  * Implementation is adapted from CONRAD
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

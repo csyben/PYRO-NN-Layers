@@ -199,5 +199,5 @@ REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), ConeProje
 /*
  * Links the cone-beam projector layer from python to the actual kernel implementation. Implemented according to Tensorflow API.
  * Implementation partially adapted from CONRAD
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

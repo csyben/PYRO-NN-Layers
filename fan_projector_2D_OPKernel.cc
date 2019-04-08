@@ -119,5 +119,5 @@ REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), FanProjec
 
 /*
  * Links the fan-beam projector layer from python to the actual kernel implementation. Implemented according to Tensorflow API.
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

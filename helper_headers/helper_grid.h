@@ -36,7 +36,7 @@ inline __host__ __device__ float3 physical_to_index(float3 physical, float3 orig
 
 /*
  * Helper methods to convert index to physical coordinates and vice versa
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */
 
 

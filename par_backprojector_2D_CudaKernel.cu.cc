@@ -97,5 +97,5 @@ void Parallel_Backprojection2D_Kernel_Launcher(const float *sinogram_ptr, float 
 /*
  * Voxel-driven parllel-beam back-projector CUDA kernel
  * Implementation partially adapted from CONRAD
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

@@ -13,7 +13,7 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("detector_origin : tensor")
     .Attr("volume_spacing : tensor")
     .Attr("detector_spacing : tensor")
-    .Attr("source_2_iso_distance : float")
+    .Attr("source_2_isocenter_distance : float")
     .Attr("source_2_detector_distance : float")
     .Attr("central_ray_vectors : tensor")
     .Output("output: float")
@@ -87,7 +87,7 @@ class FanBackprojection2DOp : public OpKernel
         auto detector_spacing_eigen = detector_spacing_tensor.tensor<float, 1>();
         detector_spacing = detector_spacing_eigen(0);
 
-        OP_REQUIRES_OK(context, context->GetAttr("source_2_iso_distance", &sid));
+        OP_REQUIRES_OK(context, context->GetAttr("source_2_isocenter_distance", &sid));
         OP_REQUIRES_OK(context, context->GetAttr("source_2_detector_distance", &sdd));
 
         //get rey vectors from attributes
@@ -121,5 +121,5 @@ REGISTER_KERNEL_BUILDER(Name(CUDA_OPERATOR_KERNEL).Device(DEVICE_GPU), FanBackpr
 
 /*
  * Links the fan-beam back-projector layer from python to the actual kernel implementation. Implemented according to Tensorflow API.
- * PyRo-ML is developed as an Open Source project under the GNU General Public License (GPL).
+ * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
 */

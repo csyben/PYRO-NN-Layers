@@ -1,3 +1,6 @@
+## 0.0.2
+* [x]   Critical Bugfix: 3D Layers missing Attributes for gradient registration
+
 ## 0.0.1
 
 * [x]  Initial package setup:
