@@ -1,3 +1,6 @@
+## 0.0.3
+* [x]   Final license: Apache 2.0
+
 ## 0.0.2
 * [x]   Critical Bugfix: 3D Layers missing Attributes for gradient registration
 
