@@ -1,3 +1,21 @@
+/*
+ * Copyright [2019] [Christopher Syben]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * 
+ * Conversion from: https://stackoverflow.com/questions/48795789/eigen-unsupported-tensor-to-eigen-matrix
+ * PYRO-NN is developed as an Open Source project under the Apache License, Version 2.0.
+*/
 #include <unsupported/Eigen/CXX11/Tensor>
 
 template<typename T>
@@ -15,8 +33,3 @@ Eigen::Tensor< Scalar, sizeof... (Dims)> Matrix_to_Tensor(const MatrixType<Scala
     constexpr int rank = sizeof... (Dims);
     return Eigen::TensorMap<Eigen::Tensor<const Scalar, rank>>(matrix.data(), {dims...});
 }
-
-/*
- * Conversion from: https://stackoverflow.com/questions/48795789/eigen-unsupported-tensor-to-eigen-matrix
- * PYRO-NN is developed as an Open Source project under the GNU General Public License (GPL).
-*/
