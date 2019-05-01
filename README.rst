@@ -79,8 +79,8 @@ The pip_package can be then build with
 
     ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package/
 
-The Tensorflow wheele file including the reconstruction operators can be found in the pip_package folder.
-This wheele package can be now installed via pip:
+The Tensorflow wheel file including the reconstruction operators can be found in the pip_package folder.
+This wheel package can be now installed via pip:
 
 .. code-block:: bash
 
