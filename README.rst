@@ -10,7 +10,8 @@ the necessary C++ information control classes according to the Tensorflow API.
 
 For convenient use of the layers also install https://github.com/csyben/PYRO-NN
 
-If you find this helpful, please cite ....The publication can be found under (https://frameworkpaper)
+If you find this helpful, we would kindly ask you to reference our article.
+The arXiv preprint can be found under https://arxiv.org/abs/1904.13342
 
 
 Installation
@@ -135,7 +136,7 @@ Can be found `CHANGELOG.md <https://github.com/csyben/PYRO-NN-Layers/blob/master
 Reference
 =========
 
-`PYRO-NN: Python Reconstruction Operators in Neural Networks <https://www.pdf>`_.
+`PYRO-NN: Python Reconstruction Operators in Neural Networks <https://arxiv.org/abs/1904.13342>`_.
 
 Applications
 ============
