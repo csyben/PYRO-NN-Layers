@@ -18,8 +18,10 @@
 */
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/shape_inference.h"
 
 using namespace tensorflow; // NOLINT(build/namespaces)
+using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "ParallelBackprojection3D"
 
@@ -33,6 +35,19 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("detector_spacing : tensor")
     .Attr("ray_vectors : tensor")
     .Output("output: float")
+    .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
+    {
+      TensorShapeProto sp;
+      ShapeHandle sh;
+      ShapeHandle batch;
+      ShapeHandle out;
+      auto status = c->GetAttr( "volume_shape", &sp );
+      status.Update( c->MakeShapeFromShapeProto( sp, &sh ) );
+      c->Subshape(c->input(0),0,1,&batch);
+      c->Concatenate(batch, sh, &out);
+      c->set_output( 0, out );
+      return status;
+    } )
     .Doc(R"doc(
 Computes the 3D parallel backprojection of the input sinogram based on the given ray vectors
 
@@ -125,8 +140,14 @@ class ParallelBackprojection3DOp : public OpKernel
         auto input = input_tensor.flat<float>();
 
         // Create an output tensor
+        TensorShape out_shape = TensorShape(
+          {input_tensor.shape().dim_size(0), volume_shape.dim_size(0), volume_shape.dim_size(1), volume_shape.dim_size(2)});
+        // Check Batch size. Batch > 1 is not supported currently.
+        OP_REQUIRES(context, input_tensor.shape().dim_size(0) == 1,
+                errors::InvalidArgument("Batch dimension is mandatory ! Batch size > 1 is not supported in the current PYRO-NN-layers."));
+        //std::cout << 'out shape:' << out_shape;
         Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, volume_shape,
+        OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         auto output = output_tensor->template flat<float>();
 
