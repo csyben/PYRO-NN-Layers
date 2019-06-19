@@ -1,7 +1,9 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/shape_inference.h"
 #include <typeinfo>
 using namespace tensorflow; // NOLINT(build/namespaces)
+using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "ParallelProjection3D"
 REGISTER_OP(CUDA_OPERATOR_KERNEL)
@@ -16,6 +18,19 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("hardware_interp : bool = false")
     .Attr("step_size: float = 0.2")
     .Output("output: float")
+    .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
+    {
+      TensorShapeProto sp;
+      ShapeHandle sh;
+      ShapeHandle batch;
+      ShapeHandle out;
+      auto status = c->GetAttr( "projection_shape", &sp );
+      status.Update( c->MakeShapeFromShapeProto( sp, &sh ) );
+      c->Subshape(c->input(0),0,1,&batch);
+      c->Concatenate(batch, sh, &out);
+      c->set_output( 0, out );
+      return status;
+    } )
     .Doc(R"doc(
 Computes the 3D parallel forward projection of the input based on the given the trajectory
 
@@ -137,8 +152,15 @@ class ParallelProjection3DOp : public OpKernel
         const Tensor &input_tensor = context->input(0);        
         auto input = input_tensor.flat<float>();        
         // Create an output tensor
+        TensorShape out_shape = TensorShape(
+          {input_tensor.shape().dim_size(0), projection_shape.dim_size(0), projection_shape.dim_size(1), projection_shape.dim_size(2)});
+        
+        // Check Batch size. Batch > 1 is not supported currently.
+        OP_REQUIRES(context, input_tensor.shape().dim_size(0) == 1,
+                errors::InvalidArgument("Batch dimension is mandatory ! Batch size > 1 is not supported in the current PYRO-NN-layers."));
+        
         Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, projection_shape,
+        OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         
         auto output = output_tensor->template flat<float>();
