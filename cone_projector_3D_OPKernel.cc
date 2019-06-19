@@ -19,11 +19,13 @@
 */
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/shape_inference.h"
 #include "helper_headers/helper_geometry_cpu.h"
 #include "helper_headers/helper_eigen.h"
 #include <Eigen/QR>
 #include <typeinfo>
 using namespace tensorflow; // NOLINT(build/namespaces)
+using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "ConeProjection3D"
 REGISTER_OP(CUDA_OPERATOR_KERNEL)
@@ -37,6 +39,19 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("step_size: float = 1.0")
     .Attr("projection_multiplier : float")
     .Output("output: float")
+    .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
+    {
+      TensorShapeProto sp;
+      ShapeHandle sh;
+      ShapeHandle batch;
+      ShapeHandle out;
+      auto status = c->GetAttr( "projection_shape", &sp );
+      status.Update( c->MakeShapeFromShapeProto( sp, &sh ) );
+      c->Subshape(c->input(0),0,1,&batch);
+      c->Concatenate(batch, sh, &out);
+      c->set_output( 0, out );
+      return status;
+    } )
     .Doc(R"doc(
 Computes the 3D cone forward projection of the input based on the given the trajectory
 
@@ -190,8 +205,15 @@ class ConeProjection3DOp : public OpKernel
         const Tensor &input_tensor = context->input(0);        
         auto input = input_tensor.flat<float>();        
         // Create an output tensor
+        TensorShape out_shape = TensorShape(
+          {input_tensor.shape().dim_size(0), projection_shape.dim_size(0), projection_shape.dim_size(1), projection_shape.dim_size(2)});
         Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, projection_shape,
+
+        // Check Batch size. Batch > 1 is not supported currently.
+        OP_REQUIRES(context, input_tensor.shape().dim_size(0) == 1,
+                errors::InvalidArgument("Batch dimension is mandatory ! Batch size > 1 is not supported in the current PYRO-NN-layers."));
+
+        OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         
         auto output = output_tensor->template flat<float>();
