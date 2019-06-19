@@ -121,6 +121,13 @@ class FanBackprojection2DOp : public OpKernel
         const Tensor &input_tensor = context->input(0);
         auto input = input_tensor.flat<float>();
 
+        // Create output shape: [batch_size, volume_shape] 
+        TensorShape out_shape = TensorShape(
+          {input_tensor.shape().dim_size(0), volume_shape.dim_size(0), volume_shape.dim_size(1)});
+        //Check supported batch size. Batch > 1 is not supported currently.
+        OP_REQUIRES(context, input_tensor.shape().dim_size(0) == 1,
+                errors::InvalidArgument("Batch dimension is mandatory ! Batch size > 1 is not supported in the current PYRO-NN-layers."));
+
         // Create an output tensor
         Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, volume_shape,
