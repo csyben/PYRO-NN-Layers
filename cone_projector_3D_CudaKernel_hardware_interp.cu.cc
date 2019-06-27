@@ -101,7 +101,7 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
         py = source_point.y + min_alpha * ray_vector.y;
         pz = source_point.z + min_alpha * ray_vector.z;
 
-        pixel += 0.5f * tex3D(volume_as_texture, px , py , pz );
+        pixel += 0.5f * tex3D(volume_as_texture, px+0.5f, py+0.5f, pz+0.5f );
 
         min_alpha += step_size;
     }
@@ -111,9 +111,8 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
         px = source_point.x + min_alpha * ray_vector.x;
         py = source_point.y + min_alpha * ray_vector.y;
         pz = source_point.z + min_alpha * ray_vector.z;
-        //float3 interp_point = physical_to_index(make_float3(px, py, pz), volume_origin, volume_spacing);
 
-        pixel += tex3D(volume_as_texture, px, py, pz );
+        pixel += tex3D(volume_as_texture, px+0.5f, py+0.5f, pz+0.5f );
 
         min_alpha += step_size;
     }
@@ -123,12 +122,12 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
     // Last segment of the line
     if (pixel > 0.0f)
     {   
-        pixel -= 0.5f * step_size * tex3D(volume_as_texture,px ,py ,pz );
+        pixel -= 0.5f * step_size * tex3D(volume_as_texture, px+0.5f, py+0.5f, pz+0.5f );
         
         min_alpha -= step_size;
         float last_step_size = max_alpha - min_alpha;
 
-        pixel += 0.5f * last_step_size* tex3D(volume_as_texture, px, py, pz );
+        pixel += 0.5f * last_step_size* tex3D(volume_as_texture, px+0.5f, py+0.5f, pz+0.5f );
 
         px = source_point.x + max_alpha * ray_vector.x;
         py = source_point.y + max_alpha * ray_vector.y;
@@ -136,7 +135,7 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
         
         // The last segment of the line integral takes care of the
         // varying length.
-        pixel += 0.5f * last_step_size * tex3D(volume_as_texture, px, py, pz);
+        pixel += 0.5f * last_step_size * tex3D(volume_as_texture, px+0.5f, py+0.5f, pz+0.5f);
     }
     return pixel;
 }
