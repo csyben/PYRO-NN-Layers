@@ -53,7 +53,7 @@ __global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_ra
     }
 
     const unsigned volume_linearized_idx = volume_y * volume_size.x + volume_x;
-    pVolume[volume_linearized_idx] = 2 * pi * pixel_value / number_of_projections;
+    pVolume[volume_linearized_idx] = pi * pixel_value / number_of_projections;
 
     return;
 }

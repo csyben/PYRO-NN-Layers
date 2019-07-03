@@ -18,8 +18,9 @@
 */
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-
+#include "tensorflow/core/framework/shape_inference.h"
 using namespace tensorflow; // NOLINT(build/namespaces)
+using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "ParallelBackprojection2D"
 
@@ -33,6 +34,19 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("detector_spacing : tensor")
     .Attr("ray_vectors : tensor")
     .Output("output: float")
+    .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
+    {
+      TensorShapeProto sp;
+      ShapeHandle sh;
+      ShapeHandle batch;
+      ShapeHandle out;
+      auto status = c->GetAttr( "volume_shape", &sp );
+      status.Update( c->MakeShapeFromShapeProto( sp, &sh ) );
+      c->Subshape(c->input(0),0,1,&batch);
+      c->Concatenate(batch, sh, &out);
+      c->set_output( 0, out );
+      return status;
+    } )
     .Doc(R"doc(
 Computes the 2D parallel backprojection of the input sinogram based on the given ray vectors
 
@@ -122,7 +136,7 @@ class ParallelBackprojection2DOp : public OpKernel
 
         // Create an output tensor
         Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, volume_shape,
+        OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         auto output = output_tensor->template flat<float>();
 
