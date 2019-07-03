@@ -136,7 +136,7 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     float pixel = kernel_project2D(
         virtual_source_point,
         ray_vector,
-        sampling_step_size * fmin(volume_spacing.x, volume_spacing.y),
+        sampling_step_size,// * fmin(volume_spacing.x, volume_spacing.y),
         volume_size,
         volume_origin,
         volume_spacing);
