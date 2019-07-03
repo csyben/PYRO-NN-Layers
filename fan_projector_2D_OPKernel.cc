@@ -18,8 +18,9 @@
 */
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-
+#include "tensorflow/core/framework/shape_inference.h"
 using namespace tensorflow; // NOLINT(build/namespaces)
+using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "FanProjection2D"
 
@@ -34,6 +35,19 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("source_2_isocenter_distance : float")
     .Attr("source_2_detector_distance : float")
     .Attr("central_ray_vectors : tensor")
+    .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
+    {
+      TensorShapeProto sp;
+      ShapeHandle sh;
+      ShapeHandle batch;
+      ShapeHandle out;
+      auto status = c->GetAttr( "projection_shape", &sp );
+      status.Update( c->MakeShapeFromShapeProto( sp, &sh ) );
+      c->Subshape(c->input(0),0,1,&batch);
+      c->Concatenate(batch, sh, &out);
+      c->set_output( 0, out );
+      return status;
+    } )
     .Output("output: float")
     .Doc(R"doc(
 Computes the 2D fan forward projection of the input based on the given central ray vectors beta
@@ -128,7 +142,7 @@ class FanProjection2DOp : public OpKernel
 
         // Create an output tensor
         Tensor *output_tensor = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(0, projection_shape,
+        OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         auto output = output_tensor->template flat<float>();
 
