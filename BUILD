@@ -5,7 +5,6 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 load("//tensorflow:tensorflow.bzl", "tf_custom_op_library")
-load("//tensorflow:tensorflow.bzl", "tf_cuda_tests_tags")
 load("//tensorflow:tensorflow.bzl", "tf_cc_binary")
 
 
