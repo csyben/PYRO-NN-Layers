@@ -21,8 +21,7 @@ import pyronn_layers
 
 
 if tf.test.is_built_with_cuda():
-    _pyronn_layers_module = tf.load_op_library(os.path.join(
-        tf.resource_loader.get_data_files_path(), 'pyronn_layers.so'))
+    _pyronn_layers_module = tf.load_op_library(os.path.dirname(__file__)+'/pyronn_layers.so')
     ''' TODO: Improve the getattr method to add only real kernel methods and not everything '''
     for obj in dir(_pyronn_layers_module):
         setattr(pyronn_layers, obj, getattr(_pyronn_layers_module, obj))
