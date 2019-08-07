@@ -47,7 +47,7 @@ __global__ void backproject_2Dpar_beam_kernel(float *pVolume, const float2 *d_ra
         float2 detector_vec = make_float2(-detector_normal.y, detector_normal.x);
 
         float s = dot(pixel_coordinate, detector_vec);
-        unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);
+        float s_idx = physical_to_index(s, detector_origin, detector_spacing);
 
         pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f);
     }
