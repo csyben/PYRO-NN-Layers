@@ -21,6 +21,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
+
 inline __device__ float kernel_project3D(const float* volume_ptr, const float3 source_point, const float3 ray_vector,
                                          const float step_size, const int3 volume_size,
                                          const float3 volume_origin, const float3 volume_spacing)
@@ -87,7 +88,7 @@ inline __device__ float kernel_project3D(const float* volume_ptr, const float3 s
         point.y = source_point.y + min_alpha * ray_vector.y;
         point.z = source_point.z + min_alpha * ray_vector.z;
         float3 index = physical_to_index(point, volume_origin, volume_spacing);
-        pixel += 0.5f * tex3D(volume_as_texture, index.x , index.y, index.z );
+        pixel += 0.5f * tex3D(volume_as_texture, index.x+0.5f , index.y+0.5f, index.z+0.5f );
         min_alpha += step_size;        
     }
 
@@ -97,7 +98,7 @@ inline __device__ float kernel_project3D(const float* volume_ptr, const float3 s
         point.y = source_point.y + min_alpha * ray_vector.y;
         point.z = source_point.z + min_alpha * ray_vector.z;
         float3 index = physical_to_index(point, volume_origin, volume_spacing);
-        pixel += tex3D(volume_as_texture, index.x , index.y, index.z);
+        pixel += tex3D(volume_as_texture, index.x+0.5f , index.y+0.5f, index.z+0.5f);
         min_alpha += step_size;
     }    
     // Scaling by stepsize;
@@ -107,11 +108,11 @@ inline __device__ float kernel_project3D(const float* volume_ptr, const float3 s
     if (pixel > 0.0f)
     {   
         float3 index = physical_to_index(point, volume_origin, volume_spacing);
-        pixel -= 0.5f * step_size * tex3D(volume_as_texture, index.x, index.y, index.z);
+        pixel -= 0.5f * step_size * tex3D(volume_as_texture, index.x+0.5f, index.y+0.5f, index.z+0.5f);
         min_alpha -= step_size;
         float last_step_size = max_alpha - min_alpha;
 
-        pixel += 0.5f * last_step_size* tex3D(volume_as_texture, index.x, index.y, index.z);
+        pixel += 0.5f * last_step_size* tex3D(volume_as_texture, index.x+0.5f, index.y+0.5f, index.z+0.5f);
 
         point.x = source_point.x + max_alpha * ray_vector.x;
         point.y = source_point.y + max_alpha * ray_vector.y;
@@ -119,7 +120,7 @@ inline __device__ float kernel_project3D(const float* volume_ptr, const float3 s
         index = physical_to_index(point, volume_origin, volume_spacing);
         // The last segment of the line integral takes care of the
         // varying length.
-        pixel += 0.5f * last_step_size * tex3D(volume_as_texture, index.x, index.y, index.z);
+        pixel += 0.5f * last_step_size * tex3D(volume_as_texture, index.x+0.5f, index.y+0.5f, index.z+0.5f);
     }
     int2 detector_idx = make_int2( blockIdx.x * blockDim.x + threadIdx.x,  blockIdx.y* blockDim.y + threadIdx.y  );
     uint projection_number = blockIdx.z;
@@ -221,7 +222,7 @@ void Parallel_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ vo
     int2 detector_size = make_int2(detector_width, detector_height);
     float2 detector_spacing = make_float2(detector_spacing_x, detector_spacing_y);
     float2 detector_origin = make_float2(detector_origin_x, detector_origin_y);
-    float ray_length = 1000;//ceil( sqrt(pow(volume_width*volume_spacing_x*0.5,2)+pow(volume_height*volume_spacing_y*0.5,2)+pow(volume_depth*volume_spacing_z*0.5,2)) * 1.1 );
+    float ray_length = -1000;//ceil( sqrt(pow(volume_width*volume_spacing_x*0.5,2)+pow(volume_height*volume_spacing_y*0.5,2)+pow(volume_depth*volume_spacing_z*0.5,2)) * 1.1 );
 
     const dim3 blocksize = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, 1 );
     const dim3 gridsize = dim3( detector_size.x / blocksize.x + 1, detector_size.y / blocksize.y + 1 , number_of_projections+1);
