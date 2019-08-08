@@ -54,7 +54,7 @@ __global__ void backproject_2Dfan_beam_kernel(float *pVolume, const float2 *d_ra
         float2 intersection = intersectLines2D(pixel_coordinate, source_position, central_point, central_point + detector_vec);
         float distance_weight = 1.0f / (float)length(pixel_coordinate - source_position);
         float s = dot(intersection, detector_vec);
-        unsigned int s_idx = physical_to_index(s, detector_origin, detector_spacing);
+        float s_idx = physical_to_index(s, detector_origin, detector_spacing);
 
         pixel_value += tex2D(sinogram_as_texture, s_idx + 0.5f, n + 0.5f) * distance_weight * distance_weight;
     }
