@@ -50,7 +50,7 @@ To achieve this, the PRYO-NN-Layers repository need to be cloned into a 'pyronn_
 
 .. code-block:: bash
 
-    git clone https://github.com/csyben/PYRO-NN-Layers pyronn_layers
+    git submodule add https://github.com/csyben/PYRO-NN-Layers pyronn_layers
 
 Next step is to patch the Tensorflow build process such that all C++ and CUDA files in the pyronn_layers folder are compiled and
 made available under the pyronn_layers namespace at the python level. Select the respective patch for the choosen release version of Tensorflow.
