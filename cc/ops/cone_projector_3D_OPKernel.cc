@@ -20,8 +20,8 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
-#include "helper_headers/helper_geometry_cpu.h"
-#include "helper_headers/helper_eigen.h"
+#include "../helper_headers/helper_geometry_cpu.h"
+#include "../helper_headers/helper_eigen.h"
 #include <Eigen/QR>
 #include <typeinfo>
 using namespace tensorflow; // NOLINT(build/namespaces)
