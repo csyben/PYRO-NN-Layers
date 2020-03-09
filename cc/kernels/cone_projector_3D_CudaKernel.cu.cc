@@ -21,8 +21,8 @@
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "helper_headers/helper_grid.h"
-#include "helper_headers/helper_math.h"
+#include "../helper_headers/helper_grid.h"
+#include "../helper_headers/helper_math.h"
 #include "tensorflow/core/framework/types.pb.h"
 #define CUDART_INF_F __int_as_float(0x7f800000)
 

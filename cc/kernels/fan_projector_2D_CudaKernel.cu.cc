@@ -19,8 +19,8 @@
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-#include "helper_headers/helper_grid.h"
-#include "helper_headers/helper_math.h"
+#include "../helper_headers/helper_grid.h"
+#include "../helper_headers/helper_math.h"
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)

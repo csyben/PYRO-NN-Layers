@@ -21,8 +21,8 @@
 #define EIGEN_USE_GPU
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "helper_headers/helper_grid.h"
-#include "helper_headers/helper_math.h"
+#include "../helper_headers/helper_grid.h"
+#include "../helper_headers/helper_math.h"
 
 #define BLOCKSIZE_X           16
 #define BLOCKSIZE_Y           4
