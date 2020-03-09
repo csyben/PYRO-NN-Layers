@@ -15,15 +15,15 @@
 # Makes every implemented operator in python available under the namespace pyronn_layers
 # PYRO-NN is developed as an Open Source project under the Apache License, Version 2.0.
 #
-import os.path
-import tensorflow as tf
-import pyronn_layers
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
+from tensorflow.python.framework import load_library
+from tensorflow.python.platform import resource_loader
 
-if tf.test.is_built_with_cuda():
-    _pyronn_layers_module = tf.load_op_library(os.path.dirname(__file__)+'/pyronn_layers.so')
-    ''' TODO: Improve the getattr method to add only real kernel methods and not everything '''
-    for obj in dir(_pyronn_layers_module):
-        setattr(pyronn_layers, obj, getattr(_pyronn_layers_module, obj))
+import pyronn_layers 
 
-
+pyronn_layers_ops = load_library.load_op_library(resource_loader.get_path_to_datafile('_pyronn_layers_ops.so'))
+for obj in dir(pyronn_layers_ops):
+        setattr(pyronn_layers, obj, getattr(pyronn_layers_ops, obj))
