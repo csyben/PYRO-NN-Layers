@@ -19,9 +19,8 @@
 */
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-#include "helper_headers/helper_grid.h"
-#include "helper_headers/helper_math.h"
+#include "../helper_headers/helper_grid.h"
+#include "../helper_headers/helper_math.h"
 
 texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
@@ -29,10 +28,6 @@ texture<float, cudaTextureType2D, cudaReadModeElementType> volume_as_texture;
 inline __device__ float kernel_project2D(const float2 source_point, const float2 ray_vector, const float step_size, const int2 volume_size,
                                          const float2 volume_origin, const float2 volume_spacing)
 {
-
-    unsigned int detector_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int projection_idx = blockIdx.y;
-
     float pixel = 0.0f;
     // Step 1: compute alpha value at entry and exit point of the volume
     float min_alpha, max_alpha;
@@ -107,17 +102,20 @@ inline __device__ float kernel_project2D(const float2 source_point, const float2
 }
 
 __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays, const int number_of_projections, const float sampling_step_size,
-                                          const int2 volume_size, const float2 volume_spacing, const float2 volume_origin,
-                                          const int detector_size, const float detector_spacing, const float detector_origin)
+                                          const int2 volume_size, const float *volume_spacing_ptr, const float *volume_origin_ptr,
+                                          const int detector_size, const float *detector_spacing_ptr, const float *detector_origin_ptr)
 {
+    //Prep: Wrap pointer to float2 for better readable code
+    float2 volume_spacing = make_float2(*(volume_spacing_ptr+1), *volume_spacing_ptr);
+    float2 volume_origin = make_float2(*(volume_origin_ptr+1), *volume_origin_ptr);
+
     unsigned int detector_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (detector_idx >= detector_size)
     {
         return;
-    }
+    }  
     //Preparations:
-
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     float sid = sqrt((float)(volume_size.x * volume_spacing.x * volume_size.x * volume_spacing.x) + (volume_size.y * volume_spacing.y * volume_size.y * volume_spacing.y)) * 1.2f;
 
@@ -127,16 +125,15 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     //create detector coordinate system (u,v) w.r.t the ray
     float2 u_vec = make_float2(-ray_vector.y, ray_vector.x);
     //calculate physical coordinate of detector pixel
-    float u = index_to_physical(detector_idx, detector_origin, detector_spacing);
+    float u = index_to_physical(detector_idx, *detector_origin_ptr, *detector_spacing_ptr);
 
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     float2 virtual_source_point = ray_vector * (-sid) + u_vec * u;
-
     float pixel = kernel_project2D(
         virtual_source_point,
         ray_vector,
-        sampling_step_size,// * fmin(volume_spacing.x, volume_spacing.y),
+        sampling_step_size,
         volume_size,
         volume_origin,
         volume_spacing);
@@ -149,42 +146,35 @@ __global__ void project_2Dpar_beam_kernel(float *pSinogram, const float2 *d_rays
     return;
 }
 
-void Parallel_Projection2D_Kernel_Launcher(const float *volume_ptr, float *out, const float *ray_vectors, const int number_of_projections,
-                                           const int volume_width, const int volume_height, const float volume_spacing_x, const float volume_spacing_y, const float volume_origin_x, const float volume_origin_y,
-                                           const int detector_size, const float detector_spacing, const float detector_origin)
+void Parallel_Projection2D_Kernel_Launcher( const float *volume_ptr, float *out, const float *ray_vectors,
+                                                const int number_of_projections,const int volume_size_x, const int volume_size_y,
+                                                const float *volume_spacing_ptr, const float *volume_origin_ptr,
+                                                const int detector_size, const float *detector_spacing_ptr, const float *detector_origin_ptr)
 {
+    //Create Texture for hardware interpolation
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
     volume_as_texture.addressMode[0] = cudaAddressModeBorder;
     volume_as_texture.addressMode[1] = cudaAddressModeBorder;
     volume_as_texture.filterMode = cudaFilterModeLinear;
     volume_as_texture.normalized = false;
-
+    //allocate and copy input tensor to cudaArray to be able to use the texture interpolation
     cudaArray *volume_array;
-    cudaMallocArray(&volume_array, &channelDesc, volume_width, volume_height);
-    cudaMemcpyToArray(volume_array, 0, 0, volume_ptr, volume_width * volume_height * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMallocArray(&volume_array, &channelDesc, volume_size_x, volume_size_y);
+    cudaMemcpyToArray(volume_array, 0, 0, volume_ptr, volume_size_x * volume_size_y * sizeof(float), cudaMemcpyHostToDevice);
     cudaBindTextureToArray(volume_as_texture, volume_array, channelDesc);
 
-    auto ray_size_b = number_of_projections * sizeof(float2);
-    float2 *d_rays;
-    cudaMalloc(&d_rays, ray_size_b);
-    cudaMemcpy(d_rays, ray_vectors, ray_size_b, cudaMemcpyHostToDevice);
-
     float sampling_step_size = 0.2;
-
-    int2 volume_size = make_int2(volume_width, volume_height);
-    float2 volume_spacing = make_float2(volume_spacing_x, volume_spacing_y);
-    float2 volume_origin = make_float2(volume_origin_x, volume_origin_y);
+    int2 volume_size = make_int2(volume_size_x, volume_size_y);
 
     const unsigned blocksize = 256;
     const dim3 gridsize = dim3((detector_size / blocksize) + 1, number_of_projections);
-    project_2Dpar_beam_kernel<<<gridsize, blocksize>>>(out, d_rays, number_of_projections, sampling_step_size,
-                                                       volume_size, volume_spacing, volume_origin,
-                                                       detector_size, detector_spacing, detector_origin);
+    project_2Dpar_beam_kernel<<<gridsize, blocksize>>>(out, ((float2 *) ray_vectors), number_of_projections, sampling_step_size,
+                                                       volume_size, volume_spacing_ptr, volume_origin_ptr,
+                                                       detector_size, detector_spacing_ptr, detector_origin_ptr);
 
     // cleanup
     cudaUnbindTexture(volume_as_texture);
     cudaFreeArray(volume_array);
-    cudaFree(d_rays);
 }
 
 #endif
