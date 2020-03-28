@@ -19,10 +19,11 @@
 */
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-#include "tensorflow/core/framework/op_kernel.h"
 #include "../helper_headers/helper_grid.h"
 #include "../helper_headers/helper_math.h"
+#include "../helper_headers/helper_eigen.h"
+#include "../helper_headers/helper_geometry_gpu.h"
+#include <Eigen/QR>
 texture<float, 3, cudaReadModeElementType> volume_as_texture;
 #define CUDART_INF_F __int_as_float(0x7f800000)
 
@@ -139,12 +140,15 @@ __device__ float kernel_project3D_tex_interp(const float3 source_point, const fl
     }
     return pixel;
 }
-__global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const float *d_inv_AR_matrices, const float3 *d_src_points, const float sampling_step_size,
-                                          const uint3 volume_size, const float3 volume_spacing,
+
+__global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const float *d_inv_AR_matrices, const float3 *d_src_points, const float *sampling_step_size,
+                                          const uint3 volume_size, const float *volume_spacing_ptr,
                                           const uint2 detector_size, const int number_of_projections)
 {
     uint2 detector_idx = make_uint2( blockIdx.x * blockDim.x + threadIdx.x,  blockIdx.y* blockDim.y + threadIdx.y  );
     uint projection_number = blockIdx.z;
+    //Prep: Wrap pointer to float2 for better readable code
+    float3 volume_spacing = make_float3(*(volume_spacing_ptr+2), *(volume_spacing_ptr+1), *volume_spacing_ptr);
     if (detector_idx.x >= detector_size.x || detector_idx.y >= detector_size.y || blockIdx.z >= number_of_projections)
     {
         return;
@@ -164,7 +168,7 @@ __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const fl
     float pixel = kernel_project3D_tex_interp(
         source_point,
         ray_vector,
-        sampling_step_size,
+        *sampling_step_size,
         volume_size);
 
     pixel *= sqrt((ray_vector.x * volume_spacing.x) * (ray_vector.x * volume_spacing.x) +
@@ -192,10 +196,9 @@ __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const fl
     *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
     * 
     */
-void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume_ptr, float *out, const float *inv_AR_matrix, const float *src_points, 
+void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict volume_ptr, float *out, const float *inv_AR_matrix,const float *src_points, 
                                     const int number_of_projections, const int volume_width, const int volume_height, const int volume_depth, 
-                                    const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
-                                    const int detector_width, const int detector_height,const float step_size)
+                                    const float *volume_spacing, const int detector_width, const int detector_height,const float *step_size)
 {
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
     volume_as_texture.addressMode[0] = cudaAddressModeBorder;
@@ -204,7 +207,7 @@ void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume
     volume_as_texture.filterMode = cudaFilterModeLinear;
     volume_as_texture.normalized = false;
 
-    //COPY inv AR matrix to graphics card as float array
+    // //COPY inv AR matrix to graphics card as float array
     auto matrices_size_b = number_of_projections * 9 * sizeof(float);
     float *d_inv_AR_matrices;
     gpuErrchk(cudaMalloc(&d_inv_AR_matrices, matrices_size_b));
@@ -238,18 +241,14 @@ void Cone_Projection_Kernel_Tex_Interp_Launcher(const float* __restrict__ volume
     gpuErrchk(cudaMemcpy3D(&copyParams)); 
 
     gpuErrchk(cudaBindTextureToArray(volume_as_texture, volume_array, channelDesc))
-
     uint3 volume_size = make_uint3(volume_width, volume_height, volume_depth);
-    float3 volume_spacing = make_float3(volume_spacing_x, volume_spacing_y, volume_spacing_z);
-
-
     uint2 detector_size = make_uint2(detector_width, detector_height);
     
     const dim3 blocksize = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, 1 );
     const dim3 gridsize = dim3( detector_size.x / blocksize.x + 1, detector_size.y / blocksize.y + 1 , number_of_projections+1);
 
     project_3Dcone_beam_kernel_tex_interp<<<gridsize, blocksize>>>(out, d_inv_AR_matrices, d_src_points, step_size,
-                                        volume_size,volume_spacing, detector_size,number_of_projections);
+                                        volume_size, volume_spacing, detector_size, number_of_projections);
 
     cudaDeviceSynchronize();
 

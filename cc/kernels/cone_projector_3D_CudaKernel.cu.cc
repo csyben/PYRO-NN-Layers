@@ -180,13 +180,15 @@ inline __device__ float kernel_project3D(const float* volume_ptr, const float3 s
     return pixel;
 }
 __global__ void project_3Dcone_beam_kernel( const float* volume_ptr, float *pSinogram, 
-                                            const float *d_inv_AR_matrices, const float3 *d_src_points, const float sampling_step_size,
-                                            const uint3 volume_size, const float3 volume_spacing, const uint2 detector_size, const int number_of_projections, 
+                                            const float *d_inv_AR_matrices, const float3 *d_src_points, const float *sampling_step_size,
+                                            const uint3 volume_size, const float *volume_spacing_ptr, const uint2 detector_size, const int number_of_projections, 
                                             const uint3 pointer_offsets)
 {
     //return;
     uint2 detector_idx = make_uint2( blockIdx.x * blockDim.x + threadIdx.x,  blockIdx.y* blockDim.y + threadIdx.y  );
     uint projection_number = blockIdx.z;
+    //Prep: Wrap pointer to float2 for better readable code
+    float3 volume_spacing = make_float3(*(volume_spacing_ptr+2), *(volume_spacing_ptr+1), *volume_spacing_ptr);
     if (detector_idx.x >= detector_size.x || detector_idx.y >= detector_size.y || blockIdx.z >= number_of_projections)
     {
         return;
@@ -206,7 +208,7 @@ __global__ void project_3Dcone_beam_kernel( const float* volume_ptr, float *pSin
         volume_ptr,
         source_point,
         ray_vector,
-        sampling_step_size,
+        *sampling_step_size,
         volume_size,
         pointer_offsets);
 
@@ -222,8 +224,7 @@ __global__ void project_3Dcone_beam_kernel( const float* volume_ptr, float *pSin
 
 void Cone_Projection_Kernel_Launcher(const float* volume_ptr, float *out, const float *inv_AR_matrix, const float *src_points, 
                                     const int number_of_projections, const int volume_width, const int volume_height, const int volume_depth, 
-                                    const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
-                                    const int detector_width, const int detector_height, const float step_size, tensorflow::OpKernelContext *context)
+                                    const float *volume_spacing, const int detector_width, const int detector_height, const float *step_size)
 {
     //COPY inv AR matrix to graphics card as float array
     auto matrices_size_b = number_of_projections * 9 * sizeof(float);
@@ -238,8 +239,6 @@ void Cone_Projection_Kernel_Launcher(const float* volume_ptr, float *out, const 
     gpuErrchk(cudaMemcpy(d_src_points, src_points, src_points_size_b, cudaMemcpyHostToDevice));
 
     uint3 volume_size = make_uint3(volume_width, volume_height, volume_depth);
-    float3 volume_spacing = make_float3(volume_spacing_x, volume_spacing_y, volume_spacing_z);
-
     uint2 detector_size = make_uint2(detector_width, detector_height);
     uint3 pointer_offsets = make_uint3(1,volume_width,volume_width*volume_height);
     
