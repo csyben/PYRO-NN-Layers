@@ -23,6 +23,7 @@
 
 #include "helper_math.h"
 #include <Eigen/Dense>
+#include <Eigen/SVD>
 
 inline __device__ float2 intersectLines2D(float2 p1, float2 p2, float2 p3, float2 p4)
 {
@@ -41,5 +42,25 @@ inline __device__ float2 intersectLines2D(float2 p1, float2 p2, float2 p3, float
     float2 isectPt = {x, y};
     return isectPt;
 }
+
+
+// namespace Geometry{
+    
+//     /// Compute right null-space of A
+//     __device__ Eigen::VectorXf nullspace(const Eigen::MatrixXf& A)
+//     {
+//         Eigen::JacobiSVD<Eigen::MatrixXf> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
+//         auto V=svd.matrixV();
+//         return V.col(V.cols()-1);
+//     }
+//     /// Extract the world coordinates of the camera center from a projection matrix. (SVD based implementation)
+//     __device__ Eigen::Vector4f getCameraCenter(const Eigen::MatrixXf& P)
+//     {
+//         Eigen::Vector4f C = Geometry::nullspace(P);
+//         if (C(3)<-1e-12 || C(3)>1e-12)
+//             C=C/C(3); // Def:Camera centers are always positive.
+//         return C;
+//     }
+// }
 
 #endif

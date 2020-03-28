@@ -19,6 +19,8 @@
 #ifndef HELPER_GEOMETRY_CPU_H
 #define HELPER_GEOMETRY_CPU_H
 #pragma once
+
+#include <math_constants.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 
