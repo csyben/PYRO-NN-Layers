@@ -147,7 +147,7 @@ __global__ void project_3Dcone_beam_kernel_tex_interp(float *pSinogram, const fl
 {
     uint2 detector_idx = make_uint2( blockIdx.x * blockDim.x + threadIdx.x,  blockIdx.y* blockDim.y + threadIdx.y  );
     uint projection_number = blockIdx.z;
-    //Prep: Wrap pointer to float2 for better readable code
+    //Prep: Wrap pointer to float3 for better readable code
     float3 volume_spacing = make_float3(*(volume_spacing_ptr+2), *(volume_spacing_ptr+1), *volume_spacing_ptr);
     if (detector_idx.x >= detector_size.x || detector_idx.y >= detector_size.y || blockIdx.z >= number_of_projections)
     {
