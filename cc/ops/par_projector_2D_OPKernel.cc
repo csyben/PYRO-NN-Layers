@@ -90,12 +90,14 @@ class ParallelProjection2DOp : public OpKernel
         const Tensor &input_ray_vector = context->input(6);
         auto ray_vectors = input_ray_vector.flat_outer_dims<float>();
         TensorShape ray_vector_shape = input_ray_vector.shape();
+        
         // Copy information on output shape to host memory.
+        // Implicit assumption that the input shape is consistent over the batch !
         int sino_shape_host_ptr[2];
         auto code = cudaMemcpy(&sino_shape_host_ptr[0], input_projection_shape.flat<int>().data(), 2*sizeof(int), cudaMemcpyDeviceToHost);
         int detector_width =  sino_shape_host_ptr[ 1 ];
         int number_of_projections = sino_shape_host_ptr[ 0 ];
-        std::cout << "number of projections: " << number_of_projections << std::endl;
+        
         // Create output shape: [batch_size, projection_shape, detector_width] <--- This is the reason why we need consistent shapes in the batch 
         TensorShape out_shape = TensorShape({batch_size, number_of_projections, detector_width});
         // Create an output tensor

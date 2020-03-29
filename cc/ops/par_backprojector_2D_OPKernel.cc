@@ -95,16 +95,12 @@ class ParallelBackprojection2DOp : public OpKernel
         // Create output shape: [batch_size, volume_shape] 
         TensorShape out_shape = TensorShape(
           {batch_size, volume_y, volume_x});
-        //Check supported batch size. Batch > 1 is not supported currently.
-        // OP_REQUIRES(context, input_tensor.shape().dim_size(0) == 1,
-        //         errors::InvalidArgument("Batch dimension is mandatory ! Batch size > 1 is not supported in the current PYRO-NN-layers."));
 
         // Create an output tensor
         Tensor *output_tensor = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, out_shape,
                                                          &output_tensor));
         auto output = output_tensor->flat_outer_dims<float>();
-        int index = 0;
         // Call the cuda kernel launcher
         for(int index = 0; index < batch_size; ++index){
           Parallel_Backprojection2D_Kernel_Launcher(&input(index,0), &output(index,0), &ray_vectors(index,0), input_shape.dim_size(1),
