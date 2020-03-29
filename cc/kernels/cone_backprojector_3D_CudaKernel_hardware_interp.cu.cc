@@ -19,10 +19,9 @@
 */
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-#include "tensorflow/core/framework/op_kernel.h"
 #include "../helper_headers/helper_grid.h"
 #include "../helper_headers/helper_math.h"
+#include "../helper_headers/helper_eigen.h"
 
 #define BLOCKSIZE_X           16
 #define BLOCKSIZE_Y           4
@@ -42,7 +41,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-inline __device__ float3 map( float3 coordinates, float* d_projection_matrices, int n )
+inline __device__ float3 map( float3 coordinates, const float* d_projection_matrices, int n )
 {
    const float* matrix = &(d_projection_matrices[n*12]);
 
@@ -53,14 +52,18 @@ inline __device__ float3 map( float3 coordinates, float* d_projection_matrices, 
    );
 }
 
-__global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, float* d_projection_matrices, const int number_of_projections,
-                                                const uint3 volume_size, const float3 volume_spacing, const float3 volume_origin, 
-                                                const float projection_multiplier)
+__global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, const float* d_projection_matrices, const int number_of_projections,
+                                                const uint3 volume_size, const float *volume_spacing_ptr, 
+                                                const float *volume_origin_ptr, 
+                                                const float *projection_multiplier)
 {
    const int i = blockIdx.x*blockDim.x + threadIdx.x;
    const int j = blockIdx.y*blockDim.y + threadIdx.y;
    const int k = blockIdx.z*blockDim.z + threadIdx.z;
-   
+
+   float3 volume_spacing = make_float3(*(volume_spacing_ptr+2), *(volume_spacing_ptr+1), *volume_spacing_ptr);
+   float3 volume_origin = make_float3(*(volume_origin_ptr+2), *(volume_origin_ptr+1), *volume_origin_ptr);
+    
    if( i >= volume_size.x  || j >= volume_size.y || k >= volume_size.z )
       return;
    
@@ -80,7 +83,7 @@ __global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, float* d_
 
    // linear volume address
    const unsigned int l = volume_size.x * ( k*volume_size.y + j ) + i;
-   vol[l] = (val * projection_multiplier);
+   vol[l] = (val * (*projection_multiplier));
 }
 
 /*************** WARNING ******************./
@@ -98,26 +101,16 @@ __global__ void backproject_3Dcone_beam_kernel_tex_interp( float* vol, float* d_
     *       : https://stackoverflow.com/questions/48580580/tensorflow-new-op-cuda-kernel-memory-managment
     * 
     */
-void Cone_Backprojection3D_Kernel_Tex_Interp_Launcher(const float *sinogram_ptr, float *out, const float *projection_matrices, const int number_of_projections,
-                                          const int volume_width, const int volume_height, const int volume_depth,
-                                          const float volume_spacing_x, const float volume_spacing_y, const float volume_spacing_z,
-                                          const float volume_origin_x, const float volume_origin_y, const float volume_origin_z,
-                                          const int detector_width, const int detector_height, const float projection_multiplier)
+void Cone_Backprojection3D_Kernel_Tex_Interp_Launcher(const float *sinogram_ptr, float *out, const float *projection_matrix, 
+                                    const int number_of_projections,
+                                    const int volume_width, const int volume_height, const int volume_depth, 
+                                    const float *volume_spacing, const float *volume_origin,
+                                    const int detector_width, const int detector_height, const float *projection_multiplier)
 {
-    //COPY matrix to graphics card as float array
-    auto matrices_size_b = number_of_projections * 12 * sizeof(float);
-    float *d_projection_matrices;
-    gpuErrchk(cudaMalloc(&d_projection_matrices, matrices_size_b));
-    gpuErrchk(cudaMemcpy(d_projection_matrices, projection_matrices, matrices_size_b, cudaMemcpyHostToDevice));
-
     uint3 volume_size = make_uint3(volume_width, volume_height, volume_depth);
-    float3 volume_spacing = make_float3(volume_spacing_x, volume_spacing_y, volume_spacing_z);
-    float3 volume_origin = make_float3(volume_origin_x, volume_origin_y, volume_origin_z);
-
     uint2 detector_size = make_uint2(detector_width, detector_height);
 
     //COPY volume to graphics card
-
     // set texture properties
     sinogram_as_texture.addressMode[0] = cudaAddressModeBorder;
     sinogram_as_texture.addressMode[1] = cudaAddressModeBorder;
@@ -158,13 +151,12 @@ void Cone_Backprojection3D_Kernel_Tex_Interp_Launcher(const float *sinogram_ptr,
     const dim3 grid = dim3( gridsize_x, gridsize_y, gridsize_z );
     const dim3 block = dim3( BLOCKSIZE_X, BLOCKSIZE_Y, BLOCKSIZE_Z );
 
-    backproject_3Dcone_beam_kernel_tex_interp<<< grid, block >>>( out, d_projection_matrices, number_of_projections,
+    backproject_3Dcone_beam_kernel_tex_interp<<< grid, block >>>( out, projection_matrix, number_of_projections,
                                                             volume_size, volume_spacing, volume_origin, projection_multiplier );
 
 
     gpuErrchk(cudaUnbindTexture(sinogram_as_texture));
     gpuErrchk(cudaFreeArray(projArray));
-    gpuErrchk(cudaFree(d_projection_matrices));
 }
 
 #endif
