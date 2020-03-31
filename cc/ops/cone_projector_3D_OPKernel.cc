@@ -71,10 +71,7 @@ class ConeProjection3DOp : public OpKernel
     Eigen::Tensor<float, 3, Eigen::RowMajor> inv_AR_matrix;
     Eigen::Tensor<float, 2, Eigen::RowMajor> src_points;
 
-    
-
   public:
-
     
     explicit ConeProjection3DOp(OpKernelConstruction *context) : OpKernel(context)
     { 
