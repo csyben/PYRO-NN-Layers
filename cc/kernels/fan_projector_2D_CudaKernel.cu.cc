@@ -125,8 +125,6 @@ __global__ void project_2Dfan_beam_kernel(float *pSinogram, const float2 *d_rays
     float2 u_vec = make_float2(-central_ray_vector.y, central_ray_vector.x);
     //calculate physical coordinate of detector pixel
     float u = index_to_physical(detector_idx, *detector_origin_ptr, *detector_spacing_ptr);
-    //float u = detector_idx * detector_spacing + detector_mid;
-
     //Calculate "source"-Point (start point for the parallel ray), so we can use the projection kernel
     //Assume a source isocenter distance to compute the start of the ray, although sid is not neseccary for a par beam geometry
     float2 source_point = central_ray_vector * (-*sid_ptr);
