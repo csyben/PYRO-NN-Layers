@@ -20,7 +20,6 @@
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
 using namespace tensorflow; // NOLINT(build/namespaces)
-using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "FanProjection2D"
 
@@ -36,7 +35,13 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Input("central_ray_vectors : float")
     .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
     {
-      c->set_output( 0, c->input(1));
+      ::tensorflow::shape_inference::ShapeHandle batch;
+      ::tensorflow::shape_inference::ShapeHandle dim;
+      ::tensorflow::shape_inference::ShapeHandle out;
+      TF_RETURN_IF_ERROR(c->MakeShapeFromShapeTensor(1, &dim));  
+      TF_RETURN_IF_ERROR(c->Subshape(c->input(0),0,1,&batch));
+      TF_RETURN_IF_ERROR(c->Concatenate(batch,dim,&out));
+      c->set_output( 0,out);
       return Status::OK();
     } )
     .Output("output: float")
@@ -55,70 +60,8 @@ void Fan_Projection_Kernel_Launcher(const float *volume_ptr, float *out, const f
 
 class FanProjection2DOp : public OpKernel
 {
-    // TensorShape volume_shape;
-    // int volume_width, volume_height;
-
-    // TensorShape projection_shape;
-    // int detector_size, number_of_projections;
-
-    // float volume_origin_x, volume_origin_y;
-
-    // float detector_origin;
-
-    // float volume_spacing_x, volume_spacing_y;
-
-    // float detector_spacing;
-
-    // float sid, sdd;
-
-    // Eigen::Tensor<float, 2, Eigen::RowMajor> ray_vectors_;
-
   public:
-    explicit FanProjection2DOp(OpKernelConstruction *context) : OpKernel(context)
-    {
-        // //get volume shape from attributes
-        // OP_REQUIRES_OK(context, context->GetAttr("volume_shape", &volume_shape));
-        // volume_height = volume_shape.dim_size(0);
-        // volume_width = volume_shape.dim_size(1);
-        // //get detector shape from attributes
-        // OP_REQUIRES_OK(context, context->GetAttr("projection_shape", &projection_shape));
-        // number_of_projections = projection_shape.dim_size(0);
-        // detector_size = projection_shape.dim_size(1);
-        // //get volume origin from attributes
-        // Tensor volume_origin_tensor;
-        // OP_REQUIRES_OK(context, context->GetAttr("volume_origin", &volume_origin_tensor));
-        // auto volume_origin_eigen = volume_origin_tensor.tensor<float, 1>();
-        // volume_origin_y = volume_origin_eigen(0);
-        // volume_origin_x = volume_origin_eigen(1);
-        // //get detector origin from attributes
-        // Tensor detector_origin_tensor;
-        // OP_REQUIRES_OK(context, context->GetAttr("detector_origin", &detector_origin_tensor));
-        // auto detector_origin_eigen = detector_origin_tensor.tensor<float, 1>();
-        // detector_origin = detector_origin_eigen(0);
-
-        // //get volume spacing from attributes
-        // Tensor volume_spacing_tensor;
-        // OP_REQUIRES_OK(context, context->GetAttr("volume_spacing", &volume_spacing_tensor));
-        // auto volume_spacing_eigen = volume_spacing_tensor.tensor<float, 1>();
-        // volume_spacing_y = volume_spacing_eigen(0);
-        // volume_spacing_x = volume_spacing_eigen(1);
-
-        // //get detector origin from attributes
-        // Tensor detector_spacing_tensor;
-        // OP_REQUIRES_OK(context, context->GetAttr("detector_spacing", &detector_spacing_tensor));
-        // auto detector_spacing_eigen = detector_spacing_tensor.tensor<float, 1>();
-        // detector_spacing = detector_spacing_eigen(0);
-
-        // //get fan geometry from attributes
-        // OP_REQUIRES_OK(context, context->GetAttr("source_2_isocenter_distance", &sid));
-        // OP_REQUIRES_OK(context, context->GetAttr("source_2_detector_distance", &sdd));
-
-        // //get rey vectors from attributes
-        // Tensor ray_vectors_tensor;
-        // OP_REQUIRES_OK(context, context->GetAttr("central_ray_vectors", &ray_vectors_tensor));
-        // auto ray_vectors_eigen = ray_vectors_tensor.tensor<float, 2>();
-        // ray_vectors_ = Eigen::Tensor<float, 2, Eigen::RowMajor>(ray_vectors_eigen);
-    }
+    explicit FanProjection2DOp(OpKernelConstruction *context) : OpKernel(context){}
 
     void Compute(OpKernelContext *context) override
     {
@@ -128,9 +71,8 @@ class FanProjection2DOp : public OpKernel
         TensorShape input_shape = input_tensor.shape();
         int batch_size = input_tensor.shape().dim_size(0);
 
-         // Grab the projection_shape Tensor. Assuming input Tensor with [batch, number_of_projections, detector_width]
+         // Grab the projection_shape Tensor.
         const Tensor &input_projection_shape = context->input(1);
-        auto projection_shape = input_projection_shape.flat_outer_dims<int>();
 
         // Grab the volume_origin Tensor. 
         const Tensor &input_volume_origin = context->input(2);

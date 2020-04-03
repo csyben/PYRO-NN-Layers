@@ -29,7 +29,6 @@
 
 #include <typeinfo>
 using namespace tensorflow; // NOLINT(build/namespaces)
-using shape_inference::ShapeHandle; 
 
 #define CUDA_OPERATOR_KERNEL "ConeProjection3D"
 REGISTER_OP(CUDA_OPERATOR_KERNEL)
@@ -43,9 +42,15 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Attr("hardware_interp : bool = false")
     .Output("output: float")
     .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
-    {
-      c->set_output( 0, c->input(1));
-      return Status::OK();
+    {   
+        ::tensorflow::shape_inference::ShapeHandle batch;
+        ::tensorflow::shape_inference::ShapeHandle dim;
+        ::tensorflow::shape_inference::ShapeHandle out;
+        TF_RETURN_IF_ERROR(c->MakeShapeFromShapeTensor(1, &dim));  
+        TF_RETURN_IF_ERROR(c->Subshape(c->input(0),0,1,&batch));
+        TF_RETURN_IF_ERROR(c->Concatenate(batch,dim,&out));
+        c->set_output( 0,out);
+        return Status::OK();
     } )
     .Doc(R"doc(
 Computes the 3D cone forward projection of the input based on the given the trajectory
@@ -185,9 +190,8 @@ class ConeProjection3DOp : public OpKernel
         TensorShape input_shape = input_tensor.shape();
         int batch_size = input_tensor.shape().dim_size(0);
 
-        // Grab the projection_shape Tensor. Assuming input Tensor with [batch, number_of_projections, detector_heigt, detector_width]
+        // Grab the projection_shape Tensor.
         const Tensor &input_projection_shape = context->input(1);
-        auto projection_shape = input_projection_shape.flat_outer_dims<int>();
 
         // Grab the volume_origin Tensor. 
         const Tensor &input_volume_origin = context->input(2);

@@ -19,8 +19,7 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/shape_inference.h"
-using namespace tensorflow; // NOLINT(build/namespaces)
-using shape_inference::ShapeHandle; 
+using namespace tensorflow; // NOLINT(build/namespaces) 
 
 #define CUDA_OPERATOR_KERNEL "FanBackprojection2D"
 
@@ -37,7 +36,13 @@ REGISTER_OP(CUDA_OPERATOR_KERNEL)
     .Output("output: float")
     .SetShapeFn( []( ::tensorflow::shape_inference::InferenceContext* c )
     {
-      c->set_output( 0, c->input(1));
+      ::tensorflow::shape_inference::ShapeHandle batch;
+      ::tensorflow::shape_inference::ShapeHandle dim;
+      ::tensorflow::shape_inference::ShapeHandle out;
+      TF_RETURN_IF_ERROR(c->MakeShapeFromShapeTensor(1, &dim));  
+      TF_RETURN_IF_ERROR(c->Subshape(c->input(0),0,1,&batch));
+      TF_RETURN_IF_ERROR(c->Concatenate(batch,dim,&out));
+      c->set_output( 0,out);
       return Status::OK();
     } )
     .Doc(R"doc(
@@ -67,9 +72,8 @@ class FanBackprojection2DOp : public OpKernel
         TensorShape input_shape = input_tensor.shape();
         int batch_size = input_tensor.shape().dim_size(0);
 
-        // Grab the volume_shape Tensor. Assuming input Tensor with [batch, number_of_projections, detector_width]
+        // Grab the volume_shape Tensor.
         const Tensor &input_volume_shape = context->input(1);
-        auto volume_shape = input_volume_shape.flat_outer_dims<int>();
 
         // Grab the volume_origin Tensor. 
         const Tensor &input_volume_origin = context->input(2);
