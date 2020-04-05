@@ -10,6 +10,9 @@ the necessary C++ information control classes according to the Tensorflow API.
 
 For convenient use of the layers also install https://github.com/csyben/PYRO-NN
 
+Open access paper available under:
+https://aapm.onlinelibrary.wiley.com/doi/full/10.1002/mp.13753
+
 If you find this helpful, we would kindly ask you to reference our article published by medical physics:
 .. code-block:: 
 
@@ -22,77 +25,90 @@ If you find this helpful, we would kindly ask you to reference our article publi
 
 
 
-Installation
+Installation - Pip
 ============
 
-To build the reconstruction operators into the Tensorflow package, the Tensorflow sources need to be prepared.
+pyronn_layers are automatically installed with pyronn via pip:
 
-To build the sources following tools are necessary: Python, Bazel, CUDA.
-Please prepare the system according to the Tensorflow 'Build from sources' guidelines: https://www.tensorflow.org/install/source . 
+.. code-block:: bash
+
+    pip install pyronn
+
+
+The pyronn_layers itself can be installed via pip:
+
+.. code-block:: bash
+
+    pip install pyronn_layers
+
+Installation - From Source
+============
+
+From pyronn_layers 0.1.0 onwards the docker imager provided by tensorflow can be used to built the reconstruction operators.
+In this procedure, the operators are built so that they match the latest Tensorflow version that is distributed via pip.
+
+To build the sources following tools are necessary: Docker.
+Please prepare the system according to the Tensorflow repository: https://github.com/tensorflow/custom-op . 
  
 If all necessary tools are installed the build process can start:
 
-First, clone the Tensorflow repository:
+First, clone the Tensorflow custom-op repository:
 
 .. code-block:: bash
 
-    git clone https://github.com/tensorflow/tensorflow.git
-    cd tensorflow
-
-Checkout a release branch from Tensorflow:
-
-.. code-block:: bash
-
-    git checkout branch_name  # r1.9, r1.12, etc.
+    git clone https://github.com/tensorflow/custom-op <folder-name>
+    cd <folder-name>
 
 Now the reconstruction operators need to be added to the build process.
-To achieve this, the PRYO-NN-Layers repository need to be cloned into a 'pyronn_layers' subfolder withing the Tensorflow source directory:
+To achieve this, the PRYO-NN-Layers repository need to be cloned into a 'pyronn_layers' subfolder withing the directory:
 
 .. code-block:: bash
 
     git clone https://github.com/csyben/PYRO-NN-Layers pyronn_layers
 
-Next step is to patch the Tensorflow build process such that all C++ and CUDA files in the pyronn_layers folder are compiled and
-made available under the pyronn_layers namespace at the python level. Select the respective patch for the choosen release version of Tensorflow.
+In the next step, the pyronn_layers need to be added to the build process (The TF examples can be removed at the same time).
+Change the following files:
 
 .. code-block:: bash
 
-    cd pyronn_layers/patches/
-    python3  patch_version # patch_tf_1_9.py, patch_tf_1_12.py, etc.
-
-Now everything is setup to build Tensorflow and the reconstruction operators. For this change back to the source directory of Tensorflow. 
+build_pip_pkg.sh -->
+	remove zero_out & time_two
+	add:   rsync -avm -L --exclude='*_test.py' ${PIP_FILE_PREFIX}pyronn_layers "${TMPDIR}"
+	change python to python3 (or change the default python path in the docker image)
 
 .. code-block:: bash
 
-    cd ../..
+BUILD -->
+	remove zero_out & time_two
+	add: "//pyronn_layers:pyronn_layers_py",
+
+.. code-block:: bash
+
+setup.py -->set project name:
+	project_name = 'pyronn-layers'
+
+.. code-block:: bash
+
+MANIFEST.in --> add pyronn 
+	remove zero_out & add_two
+	recursive-include pyronn_layers/ *.so
+
+Now everything is setup to build the reconstruction operators.
 
 The Tensorflow build process need to be configured, for that type:
 
 .. code-block:: bash
 
-    ./configure
+    ./configure.sh
+    bazel build build_pip_pkg
+    bazel-bin/build_pip_pkg artifacts
 
-For a detailed description follow the Tensorflow guidelines itself (https://www.tensorflow.org/install/source). 
-In short, choose the python interpreter and the CUDA version which sould be used to create the package.
-
-After the confguration the sources can be compiled with
-
-.. code-block:: bash
-
-    bazel build --config=opt --config=cuda //tensorflow/tools/pip_package:build_pip_package
-
-The pip_package can be then build with 
-
-.. code-block:: bash
-
-    ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package/
-
-The Tensorflow wheel file including the reconstruction operators can be found in the pip_package folder.
+Thats it. The wheel file containts the reconstruction operators. 
 This wheel package can be now installed via pip:
 
 .. code-block:: bash
 
-    pip3 install ./pip_package/<FileName>
+    pip3 install ./artifacts/<FileName>
 
 Now verything is setup and the reconstruction operators can be found under pyronn_layers namespace. 
 For a more convinient use of these operators the pyronn pip package is provided under:
@@ -115,17 +131,17 @@ memory outside of the Tensorflow context, which can easily lead to out of memory
 
 There exist two ways of dealing with this problem:
 
-1. A convenient way is to reduce the initially allocated memory by Tensorflow itself and allow a memory growth. We suggest to always use this mechanism 
-to minimize the occurrence of out of memory errors:
+1. With the new pyronn version of 0.1.0 pyronn will automatically set memory growth for Tensorflow to true. The following code allows the memory growth:
 
 .. code-block:: python
 
-    config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.5
-    config.gpu_options.allow_growth = True
-    # ------------------ Call Layers ------------------
-    with tf.Session(config=config) as sess:
-        ...
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+            except RunetimeError as e:
+                print(e)
 
 2. The memory consuming operators like 3D cone-beam projection and back-projection have a so called hardware_interp flag. This means that the
 interpolation for both operators are either done by the CUDA texture or based on software interpolation. To use the CUDA texture, 
