@@ -1,3 +1,11 @@
+
+## 0.1.0
+* [x]   Rework of layer API. Geometry inputs are now tensors instead of  attrib.
+* [x]   Tensorflow 2.0 support
+* [x]   Eager execution
+* [x]   Build process is now based on tensorflow custom-op docker iamge
+* [x]   Batch dimension > 1 support
+
 ## 0.0.4
 * [x]   Added shape_inference::ShapeHandle; to allow Tensorflow to evaluate the shape of the propived operators
 * [x]   Batch dimension is now handled correctly
